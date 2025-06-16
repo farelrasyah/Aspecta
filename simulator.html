@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aspecta Device Simulator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .simulator-container {
+            background: #1f2937;
+            border-radius: 25px;
+            padding: 20px 12px;
+            box-shadow: 
+                inset 0 2px 4px rgba(255, 255, 255, 0.1),
+                0 20px 40px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+        
+        .simulator-container.android {
+            border-radius: 15px;
+        }
+        
+        .simulator-container.tablet {
+            border-radius: 20px;
+            padding: 24px 20px;
+        }
+        
+        .device-info {
+            text-align: center;
+            color: #d1d5db;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+        
+        .device-screen {
+            background: #000;
+            border-radius: 18px;
+            border: 2px solid #4a5568;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        }
+        
+        .simulator-container.android .device-screen {
+            border-radius: 8px;
+            border: 1px solid #6b7280;
+        }
+        
+        .screen-content {
+            width: 100%;
+            height: 100%;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .loading-message {
+            color: #6b7280;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .url-display {
+            background: #f3f4f6;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #374151;
+            word-break: break-all;
+            text-align: center;
+            margin-bottom: 20px;
+            max-width: 90%;
+        }
+        
+        .controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+        }
+        
+        .control-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 4px;
+            padding: 6px 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+        
+        .control-btn:hover {
+            background: white;
+        }
+        
+        .screenshot-preview {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+        
+        .error-message {
+            color: #ef4444;
+            text-align: center;
+            font-size: 14px;
+            margin: 10px;
+        }
+        
+        .instructions {
+            text-align: center;
+            color: #9ca3af;
+            font-size: 13px;
+            margin-top: 15px;
+            line-height: 1.4;
+        }
+        
+        .loading-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 12px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="simulator-container" id="simulatorContainer">
+        <div class="device-info" id="deviceInfo">
+            📱 Loading Device...
+        </div>
+        
+        <div class="device-screen" id="deviceScreen">
+            <div class="controls">
+                <button class="control-btn" onclick="captureScreenshot()" title="Capture Screenshot">📸</button>
+                <button class="control-btn" onclick="refreshContent()" title="Refresh">🔄</button>
+                <button class="control-btn" onclick="openOriginal()" title="Open Original">🔗</button>
+            </div>
+            
+            <div class="screen-content" id="screenContent">
+                <div class="loading-spinner"></div>
+                <div class="loading-message" id="loadingMessage">📱 Initializing Simulator...</div>
+                <div class="url-display" id="urlDisplay" style="display: none;"></div>
+                <div class="instructions" id="instructions" style="display: none;">
+                    Click "📸" to capture website screenshot<br>
+                    Click "🔗" to open original site<br>
+                    Click "🔄" to refresh preview
+                </div>
+                <img id="screenshotPreview" class="screenshot-preview" />
+                <div id="errorMessage" class="error-message" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let simulatorConfig = {};
+        
+        // Get configuration from URL parameters
+        function getConfig() {
+            const urlParams = new URLSearchParams(window.location.search);
+            simulatorConfig = {
+                width: parseInt(urlParams.get('width')) || 375,
+                height: parseInt(urlParams.get('height')) || 667,
+                deviceLabel: urlParams.get('device') || 'Custom Device',
+                deviceType: urlParams.get('type') || 'iphone',
+                targetUrl: urlParams.get('url') || '',
+                userAgent: urlParams.get('userAgent') || ''
+            };
+            
+            console.log('Aspecta Simulator Config:', simulatorConfig);
+            return simulatorConfig;
+        }
+        
+        // Initialize simulator
+        function initSimulator() {
+            const config = getConfig();
+            
+            // Set device screen dimensions
+            const deviceScreen = document.getElementById('deviceScreen');
+            deviceScreen.style.width = config.width + 'px';
+            deviceScreen.style.height = config.height + 'px';
+            
+            // Set device info
+            document.getElementById('deviceInfo').textContent = 
+                `📱 ${config.deviceLabel} • ${config.width}×${config.height}`;
+            
+            // Set URL display
+            document.getElementById('urlDisplay').textContent = config.targetUrl;
+            document.getElementById('urlDisplay').style.display = 'block';
+            
+            // Apply device styling
+            const container = document.getElementById('simulatorContainer');
+            container.className = `simulator-container ${config.deviceType}`;
+            
+            // Show instructions
+            document.getElementById('instructions').style.display = 'block';
+            
+            // Auto-capture screenshot
+            setTimeout(() => {
+                captureScreenshot();
+            }, 1000);
+        }
+        
+        function showError(message) {
+            console.error('Aspecta Simulator Error:', message);
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorMessage').style.display = 'block';
+            document.getElementById('loadingMessage').style.display = 'none';
+        }
+        
+        function hideError() {
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+        
+        async function captureScreenshot() {
+            try {
+                hideError();
+                const loadingMsg = document.getElementById('loadingMessage');
+                loadingMsg.textContent = '📸 Capturing screenshot...';
+                loadingMsg.style.display = 'block';
+                
+                // Check if Chrome extension API is available
+                if (!chrome || !chrome.runtime) {
+                    throw new Error('Chrome Extension API not available');
+                }
+                
+                console.log('Aspecta Simulator: Requesting screenshot for', simulatorConfig.targetUrl);
+                
+                // Send message to background script
+                chrome.runtime.sendMessage({
+                    action: 'captureScreenshot',
+                    url: simulatorConfig.targetUrl,
+                    width: simulatorConfig.width,
+                    height: simulatorConfig.height,
+                    userAgent: simulatorConfig.userAgent
+                }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        showError('Extension communication error: ' + chrome.runtime.lastError.message);
+                        return;
+                    }
+                    
+                    if (response && response.success) {
+                        console.log('Aspecta Simulator: Screenshot captured successfully');
+                        const img = document.getElementById('screenshotPreview');
+                        img.src = response.dataUrl;
+                        img.style.display = 'block';
+                        loadingMsg.style.display = 'none';
+                    } else {
+                        showError('Failed to capture screenshot: ' + (response?.error || 'Unknown error'));
+                    }
+                });
+                
+            } catch (error) {
+                showError('Error: ' + error.message);
+            }
+        }
+        
+        function refreshContent() {
+            document.getElementById('screenshotPreview').style.display = 'none';
+            const loadingMsg = document.getElementById('loadingMessage');
+            loadingMsg.style.display = 'block';
+            loadingMsg.textContent = '🔄 Ready to capture';
+            hideError();
+        }
+        
+        function openOriginal() {
+            if (simulatorConfig.targetUrl) {
+                window.open(simulatorConfig.targetUrl, '_blank');
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initSimulator);
+    </script>
+</body>
+</html>

@@ -88,6 +88,54 @@ Window Simulator Terpisah:
 - **User agent** diterapkan saat screenshot
 - **Device frame** styling otomatis berdasarkan device type
 
+## 🚨 **CRITICAL FIX: Extension API Not Available**
+
+### ✅ **Error "Extension API not available" - DIPERBAIKI!**
+
+#### **Masalah Sebelumnya:**
+- ❌ Simulator window menggunakan data URL yang tidak bisa akses extension API
+- ❌ Screenshot capture gagal dengan error "Extension API not available"
+- ❌ Website tidak muncul dalam device simulator
+
+#### **Solusi Implementasi:**
+- ✅ **Buat file `simulator.html` terpisah** dengan akses penuh ke extension API
+- ✅ **Ganti data URL dengan chrome-extension:// URL** untuk akses API
+- ✅ **Perbaiki komunikasi background script** dengan logging yang lebih baik
+- ✅ **Tambahkan parameter URL** untuk konfigurasi device
+
+#### **Cara Kerja Baru:**
+1. **Extension membuka `simulator.html`** dengan parameter device
+2. **File HTML memiliki akses penuh** ke `chrome.runtime` API
+3. **Screenshot capture** bekerja melalui background script
+4. **Website muncul** dalam device frame secara otomatis
+
+### 🎯 **Yang Akan Terjadi Sekarang:**
+
+#### **Saat Klik "Open Device Simulator":**
+1. **Window baru terbuka** dengan device frame realistis
+2. **Auto-loading** message dengan spinner
+3. **Screenshot website** diambil otomatis dalam 1 detik
+4. **Website muncul** dalam frame device yang dipilih
+5. **No more "Extension API not available" error!**
+
+#### **Controls Yang Bekerja:**
+- **📸 Capture Screenshot:** Ambil screenshot fresh dari website
+- **🔄 Refresh:** Reset dan siap capture ulang  
+- **🔗 Open Original:** Buka website asli di tab baru
+
+### 📁 **File Baru:**
+```
+simulator.html  ✅ Standalone HTML dengan extension API access
+```
+
+### 🔧 **Testing Steps:**
+1. **Reload extension** di chrome://extensions
+2. **Buka website apapun** (Freepik, Google, dll)
+3. **Klik Aspecta icon**
+4. **Pilih device** (iPhone SE, Galaxy S22, dll)
+5. **Klik "Open Device Simulator"**
+6. **✅ Website akan muncul dalam device frame!**
+
 ## 🎉 **Extension Sekarang Siap Digunakan!**
 
 **Tidak ada lagi error "menolak untuk terhubung" dan website utama tetap tidak berubah!** 🚀

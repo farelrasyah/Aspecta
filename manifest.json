@@ -40,7 +40,7 @@
     }
   ],  "web_accessible_resources": [
     {
-      "resources": ["devices.json", "test.html"],
+      "resources": ["devices.json", "test.html", "simulator.html"],
       "matches": ["<all_urls>"]
     }
   ]

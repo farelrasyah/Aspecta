@@ -583,23 +583,27 @@ class AspectaPopup {
             console.error('Failed to open simulator window:', error);
             this.setStatus('Failed to open new window', 'error');
         }
-    }
-
-    async createSimulatorWindow(width, height, deviceInfo, userAgent) {
+    }    async createSimulatorWindow(width, height, deviceInfo, userAgent) {
         try {
+            console.log('Aspecta: Creating simulator window for', deviceInfo.label);
+            
             // Calculate window dimensions with device frame padding
             const frameWidth = width + 80;  // Extra space for device frame
             const frameHeight = height + 160; // Extra space for device frame + title bar
 
-            // Create HTML content for simulator window
-            const simulatorContent = this.generateSimulatorHTML(width, height, deviceInfo, this.currentTab.url, userAgent);
+            // Create URL for simulator with parameters
+            const simulatorUrl = chrome.runtime.getURL('simulator.html') + 
+                `?width=${width}&height=${height}` +
+                `&device=${encodeURIComponent(deviceInfo.label)}` +
+                `&type=${this.getDeviceFrameClass(deviceInfo.label)}` +
+                `&url=${encodeURIComponent(this.currentTab.url)}` +
+                `&userAgent=${encodeURIComponent(userAgent || '')}`;
             
-            // Create data URL for the simulator
-            const dataURL = 'data:text/html;charset=utf-8,' + encodeURIComponent(simulatorContent);
+            console.log('Aspecta: Opening simulator URL:', simulatorUrl);
             
             // Open simulator in new window
             const simulatorWindow = await chrome.windows.create({
-                url: dataURL,
+                url: simulatorUrl,
                 type: 'popup',
                 width: Math.min(frameWidth, 800),
                 height: Math.min(frameHeight, 900),
@@ -610,229 +614,12 @@ class AspectaPopup {
             // Store window ID for later reference
             this.simulatorWindowId = simulatorWindow.id;
             
-            console.log('Aspecta: Simulator window created');
+            console.log('Aspecta: Simulator window created with ID:', simulatorWindow.id);
             
         } catch (error) {
             console.error('Failed to create simulator window:', error);
             throw error;
-        }
-    }
-
-    generateSimulatorHTML(width, height, deviceInfo, targetUrl, userAgent) {
-        const isLandscape = document.getElementById('landscapeToggle').checked;
-        const frameClass = this.getDeviceFrameClass(deviceInfo.label);
-        
-        return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aspecta Simulator - ${deviceInfo.label}</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .simulator-container {
-            background: #1f2937;
-            border-radius: ${frameClass === 'iphone' ? '25px' : frameClass === 'android' ? '15px' : '20px'};
-            padding: ${frameClass === 'tablet' ? '24px 20px' : '20px 12px'};
-            box-shadow: 
-                inset 0 2px 4px rgba(255, 255, 255, 0.1),
-                0 20px 40px rgba(0, 0, 0, 0.3);
-            position: relative;
-        }
-        
-        .device-info {
-            text-align: center;
-            color: #d1d5db;
-            margin-bottom: 16px;
-            font-size: 14px;
-        }
-        
-        .device-screen {
-            width: ${width}px;
-            height: ${height}px;
-            background: #000;
-            border-radius: ${frameClass === 'iphone' ? '18px' : '8px'};
-            border: ${frameClass === 'iphone' ? '2px solid #4a5568' : '1px solid #6b7280'};
-            overflow: hidden;
-            position: relative;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
-        }
-        
-        .screen-content {
-            width: 100%;
-            height: 100%;
-            background: white;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
-        
-        .loading-message {
-            color: #6b7280;
-            font-size: 16px;
-            margin-bottom: 20px;
-        }
-        
-        .url-display {
-            background: #f3f4f6;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-family: monospace;
-            font-size: 12px;
-            color: #374151;
-            word-break: break-all;
-            text-align: center;
-            margin-bottom: 20px;
-            max-width: 90%;
-        }
-        
-        .controls {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            display: flex;
-            gap: 8px;
-        }
-        
-        .control-btn {
-            background: rgba(255, 255, 255, 0.9);
-            border: none;
-            border-radius: 4px;
-            padding: 6px 8px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: background 0.2s;
-        }
-        
-        .control-btn:hover {
-            background: white;
-        }
-        
-        .screenshot-preview {
-            max-width: 90%;
-            max-height: 80%;
-            border-radius: 4px;
-            display: none;
-        }
-        
-        .error-message {
-            color: #ef4444;
-            text-align: center;
-            font-size: 14px;
-            margin: 10px;
-        }
-        
-        .instructions {
-            text-align: center;
-            color: #9ca3af;
-            font-size: 13px;
-            margin-top: 15px;
-            line-height: 1.4;
-        }
-    </style>
-</head>
-<body>
-    <div class="simulator-container">
-        <div class="device-info">
-            📱 ${deviceInfo.label} • ${width}×${height}
-        </div>
-        
-        <div class="device-screen">
-            <div class="controls">
-                <button class="control-btn" onclick="captureScreenshot()">📸</button>
-                <button class="control-btn" onclick="refreshContent()">🔄</button>
-                <button class="control-btn" onclick="openOriginal()">🔗</button>
-            </div>
-            
-            <div class="screen-content" id="screenContent">
-                <div class="loading-message">📱 Device Simulator Ready</div>
-                <div class="url-display">${targetUrl}</div>
-                <div class="instructions">
-                    Click "📸" to capture website screenshot<br>
-                    Click "🔗" to open original site<br>
-                    Click "🔄" to refresh preview
-                </div>
-                <img id="screenshotPreview" class="screenshot-preview" />
-                <div id="errorMessage" class="error-message" style="display: none;"></div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        const targetUrl = '${targetUrl}';
-        const userAgent = '${userAgent || ''}';
-        
-        function showError(message) {
-            document.getElementById('errorMessage').textContent = message;
-            document.getElementById('errorMessage').style.display = 'block';
-        }
-        
-        function hideError() {
-            document.getElementById('errorMessage').style.display = 'none';
-        }
-        
-        async function captureScreenshot() {
-            try {
-                hideError();
-                document.querySelector('.loading-message').textContent = '📸 Capturing screenshot...';
-                
-                // Use chrome extension API to capture screenshot
-                if (chrome && chrome.runtime) {
-                    chrome.runtime.sendMessage({
-                        action: 'captureScreenshot',
-                        url: targetUrl,
-                        width: ${width},
-                        height: ${height},
-                        userAgent: userAgent
-                    }, (response) => {
-                        if (response && response.success) {
-                            const img = document.getElementById('screenshotPreview');
-                            img.src = response.dataUrl;
-                            img.style.display = 'block';
-                            document.querySelector('.loading-message').style.display = 'none';
-                        } else {
-                            showError('Failed to capture screenshot: ' + (response?.error || 'Unknown error'));
-                        }
-                    });
-                } else {
-                    showError('Extension API not available');
-                }
-            } catch (error) {
-                showError('Error: ' + error.message);
-            }
-        }
-        
-        function refreshContent() {
-            document.getElementById('screenshotPreview').style.display = 'none';
-            document.querySelector('.loading-message').style.display = 'block';
-            document.querySelector('.loading-message').textContent = '🔄 Ready to capture';
-            hideError();
-        }
-        
-        function openOriginal() {
-            window.open(targetUrl, '_blank');
-        }
-        
-        // Auto-capture screenshot on load
-        setTimeout(captureScreenshot, 1000);
-    </script>
-</body>
-</html>`;
-    }
+        }    }
 
     getDeviceFrameClass(deviceLabel) {
         const label = deviceLabel.toLowerCase();
@@ -840,10 +627,8 @@ class AspectaPopup {
         if (label.includes('galaxy') || label.includes('pixel') || label.includes('android')) return 'android';
         if (label.includes('ipad') || label.includes('tablet')) return 'tablet';
         return 'android'; // default
-    }
-
-    showLocalDevicePreview(width, height, deviceInfo) {
-        // Show simple preview in popup without iframe issues
+    }    showLocalDevicePreview(width, height, deviceInfo) {
+        // Show simple preview in popup
         const simulatorSection = document.getElementById('simulatorSection');
         simulatorSection.classList.add('show');
 
@@ -864,8 +649,9 @@ class AspectaPopup {
             <div style="text-align: center; color: #374151;">
                 <div style="font-size: 24px; margin-bottom: 12px;">📱</div>
                 <p><strong>Simulator Window Opened!</strong></p>
-                <p style="font-size: 12px; margin-top: 8px;">
-                    Check the new window for device preview
+                <p style="font-size: 12px; margin-top: 8px; color: #6b7280;">
+                    Check the new window for device preview.<br>
+                    The website will load automatically.
                 </p>
             </div>
         `;

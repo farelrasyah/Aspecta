@@ -154,13 +154,17 @@ class AspectaBackground {
             console.error('Failed to get tab info:', error);
             throw error;
         }
-    }
-
-    async captureWebsiteScreenshot(url, width, height, userAgent) {
+    }    async captureWebsiteScreenshot(url, width, height, userAgent) {
         try {
-            console.log(`Aspecta Background: Capturing screenshot for ${url} at ${width}x${height}`);
+            console.log(`Aspecta Background: Starting screenshot capture for ${url} at ${width}x${height}`);
+            
+            // Validate URL
+            if (!url || url === 'undefined') {
+                throw new Error('Invalid URL provided');
+            }
             
             // Create a temporary tab with specific dimensions
+            console.log('Aspecta Background: Creating temporary window...');
             const tempWindow = await chrome.windows.create({
                 url: url,
                 type: 'popup',
@@ -171,36 +175,47 @@ class AspectaBackground {
                 focused: false
             });
 
+            console.log('Aspecta Background: Temporary window created, waiting for page load...');
+
             // Wait for page to load
             await new Promise(resolve => {
                 const listener = (tabId, changeInfo) => {
                     if (changeInfo.status === 'complete' && tabId === tempWindow.tabs[0].id) {
                         chrome.tabs.onUpdated.removeListener(listener);
+                        console.log('Aspecta Background: Page loaded');
                         resolve();
                     }
                 };
                 chrome.tabs.onUpdated.addListener(listener);
                 
                 // Fallback timeout
-                setTimeout(resolve, 5000);
+                setTimeout(() => {
+                    console.log('Aspecta Background: Page load timeout, proceeding anyway');
+                    resolve();
+                }, 5000);
             });
 
             // Apply user agent if provided
-            if (userAgent) {
+            if (userAgent && userAgent !== 'undefined' && userAgent.trim()) {
+                console.log('Aspecta Background: Applying user agent...');
                 await this.setUserAgentForTab(tempWindow.tabs[0].id, userAgent);
                 // Reload to apply user agent
                 await chrome.tabs.reload(tempWindow.tabs[0].id);
                 await new Promise(resolve => setTimeout(resolve, 2000));
             }
 
+            console.log('Aspecta Background: Capturing screenshot...');
             // Capture screenshot
             const dataUrl = await chrome.tabs.captureVisibleTab(tempWindow.id, {
                 format: 'png',
                 quality: 100
             });
 
+            console.log('Aspecta Background: Screenshot captured successfully');
+
             // Close temporary window
             await chrome.windows.remove(tempWindow.id);
+            console.log('Aspecta Background: Temporary window closed');
 
             return dataUrl;
 
