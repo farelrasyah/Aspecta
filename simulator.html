@@ -131,8 +131,7 @@
             margin-top: 15px;
             line-height: 1.4;
         }
-        
-        .loading-spinner {
+          .loading-spinner {
             width: 32px;
             height: 32px;
             border: 3px solid #e5e7eb;
@@ -145,6 +144,36 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+        
+        .progress-container {
+            width: 100%;
+            max-width: 200px;
+            margin: 10px auto;
+            text-align: center;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #374151;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 2px;
+        }
+        
+        .step-indicator {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 5px;
         }
     </style>
 </head>
@@ -160,10 +189,15 @@
                 <button class="control-btn" onclick="refreshContent()" title="Refresh">🔄</button>
                 <button class="control-btn" onclick="openOriginal()" title="Open Original">🔗</button>
             </div>
-            
-            <div class="screen-content" id="screenContent">
+              <div class="screen-content" id="screenContent">
                 <div class="loading-spinner"></div>
                 <div class="loading-message" id="loadingMessage">📱 Initializing Simulator...</div>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div id="progressFill" class="progress-fill"></div>
+                    </div>
+                    <div id="stepIndicator" class="step-indicator">Setting up device...</div>
+                </div>
                 <div class="url-display" id="urlDisplay" style="display: none;"></div>
                 <div class="instructions" id="instructions" style="display: none;">
                     Click "📸" to capture website screenshot<br>
@@ -193,11 +227,32 @@
             
             console.log('Aspecta Simulator Config:', simulatorConfig);
             return simulatorConfig;
-        }
-        
-        // Initialize simulator
-        function initSimulator() {
+        }        // Initialize simulator
+        async function initSimulator() {
+            console.log('Aspecta Simulator: Starting initialization...');
+            
+            // Progress tracking
+            let currentStep = 0;
+            const totalSteps = 5;
+            
+            function updateProgress(step, message) {
+                currentStep = step;
+                const percentage = (step / totalSteps) * 100;
+                const progressFill = document.getElementById('progressFill');
+                const stepIndicator = document.getElementById('stepIndicator');
+                if (progressFill) progressFill.style.width = percentage + '%';
+                if (stepIndicator) stepIndicator.textContent = message;
+                console.log(`Aspecta Simulator: Step ${step}/${totalSteps} - ${message}`);
+            }
+            
+            // Step 1: Parse configuration
+            updateProgress(1, 'Reading parameters...');
             const config = getConfig();
+            
+            console.log('Aspecta Simulator: Initializing with config:', config);
+            
+            // Step 2: Setup device display
+            updateProgress(2, 'Setting up device...');
             
             // Set device screen dimensions
             const deviceScreen = document.getElementById('deviceScreen');
@@ -209,20 +264,71 @@
                 `📱 ${config.deviceLabel} • ${config.width}×${config.height}`;
             
             // Set URL display
-            document.getElementById('urlDisplay').textContent = config.targetUrl;
-            document.getElementById('urlDisplay').style.display = 'block';
+            const urlDisplay = document.getElementById('urlDisplay');
+            urlDisplay.textContent = config.targetUrl;
+            urlDisplay.style.display = 'block';
             
             // Apply device styling
             const container = document.getElementById('simulatorContainer');
             container.className = `simulator-container ${config.deviceType}`;
             
-            // Show instructions
-            document.getElementById('instructions').style.display = 'block';
+            // Step 3: Check Extension API
+            updateProgress(3, 'Checking extension API...');
             
-            // Auto-capture screenshot
-            setTimeout(() => {
-                captureScreenshot();
-            }, 1000);
+            if (!chrome || !chrome.runtime) {
+                showError('Extension API not available. Try reloading the extension.');
+                return;
+            }
+            
+            console.log('Aspecta Simulator: Chrome API available, testing connection...');
+              // Step 4: Test communication with timeout
+            updateProgress(4, 'Testing connection...');
+            
+            // Create timeout for ping test
+            const pingTimeout = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Extension ping timeout')), 3000);
+            });
+            
+            const pingTest = new Promise((resolve, reject) => {
+                chrome.runtime.sendMessage({action: 'ping'}, (response) => {
+                    if (chrome.runtime.lastError) {
+                        reject(new Error('Extension communication failed: ' + chrome.runtime.lastError.message));
+                        return;
+                    }
+                    
+                    console.log('Aspecta Simulator: Extension communication OK');
+                    resolve(response);
+                });
+            });
+            
+            try {
+                await Promise.race([pingTest, pingTimeout]);
+                
+                // Step 5: Ready for action
+                updateProgress(5, 'Ready!');
+                
+                // Show final state
+                setTimeout(() => {
+                    document.getElementById('loadingMessage').textContent = '🚀 Simulator Ready! Starting capture...';
+                    document.getElementById('instructions').style.display = 'block';
+                    
+                    // Start auto-capture immediately
+                    console.log('Aspecta Simulator: Starting auto-capture...');
+                    captureScreenshot();
+                }, 100); // Immediate start
+                
+            } catch (error) {
+                console.error('Aspecta Simulator: Ping test failed:', error);
+                
+                // Try to continue anyway, show manual controls
+                updateProgress(5, 'Manual mode');
+                
+                document.getElementById('loadingMessage').textContent = '⚠️ Extension connection issue. Click 📸 to capture manually.';
+                document.getElementById('instructions').style.display = 'block';
+                showError('Extension communication issue. Try clicking 📸 manually.');
+            }
+            
+            console.log('Aspecta Simulator: Initialization complete');
         }
         
         function showError(message) {
@@ -234,48 +340,113 @@
         
         function hideError() {
             document.getElementById('errorMessage').style.display = 'none';
-        }
-        
-        async function captureScreenshot() {
+        }        async function captureScreenshot() {
             try {
+                console.log('Aspecta Simulator: Starting screenshot capture...');
                 hideError();
+                
                 const loadingMsg = document.getElementById('loadingMessage');
+                const progressFill = document.getElementById('progressFill');
+                const stepIndicator = document.getElementById('stepIndicator');
+                
+                // Update UI for screenshot process
                 loadingMsg.textContent = '📸 Capturing screenshot...';
                 loadingMsg.style.display = 'block';
                 
+                // Show progress for screenshot capture
+                function updateCaptureProgress(step, total, message) {
+                    const percentage = (step / total) * 100;
+                    if (progressFill) progressFill.style.width = percentage + '%';
+                    if (stepIndicator) stepIndicator.textContent = message;
+                }
+                
+                updateCaptureProgress(1, 4, 'Preparing capture...');
+                
                 // Check if Chrome extension API is available
                 if (!chrome || !chrome.runtime) {
-                    throw new Error('Chrome Extension API not available');
+                    throw new Error('Chrome Extension API not available. Try reloading the extension.');
+                }
+                
+                updateCaptureProgress(2, 4, 'Validating URL...');
+                
+                // Validate target URL
+                if (!simulatorConfig.targetUrl || simulatorConfig.targetUrl === 'undefined') {
+                    throw new Error('No target URL provided');
                 }
                 
                 console.log('Aspecta Simulator: Requesting screenshot for', simulatorConfig.targetUrl);
                 
-                // Send message to background script
-                chrome.runtime.sendMessage({
-                    action: 'captureScreenshot',
-                    url: simulatorConfig.targetUrl,
-                    width: simulatorConfig.width,
-                    height: simulatorConfig.height,
-                    userAgent: simulatorConfig.userAgent
-                }, (response) => {
-                    if (chrome.runtime.lastError) {
-                        showError('Extension communication error: ' + chrome.runtime.lastError.message);
-                        return;
-                    }
-                    
-                    if (response && response.success) {
-                        console.log('Aspecta Simulator: Screenshot captured successfully');
-                        const img = document.getElementById('screenshotPreview');
-                        img.src = response.dataUrl;
-                        img.style.display = 'block';
-                        loadingMsg.style.display = 'none';
-                    } else {
-                        showError('Failed to capture screenshot: ' + (response?.error || 'Unknown error'));
-                    }
+                updateCaptureProgress(3, 4, 'Capturing screenshot...');
+                
+                // Create timeout promise (reduced to 8 seconds)
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error('Screenshot capture timeout (8s)')), 8000);
                 });
                 
+                // Create screenshot request promise
+                const screenshotPromise = new Promise((resolve, reject) => {
+                    chrome.runtime.sendMessage({
+                        action: 'captureScreenshot',
+                        url: simulatorConfig.targetUrl,
+                        width: simulatorConfig.width,
+                        height: simulatorConfig.height,
+                        userAgent: simulatorConfig.userAgent
+                    }, (response) => {
+                        if (chrome.runtime.lastError) {
+                            reject(new Error('Extension communication error: ' + chrome.runtime.lastError.message));
+                            return;
+                        }
+                        
+                        if (response && response.success) {
+                            resolve(response);
+                        } else {
+                            reject(new Error('Screenshot failed: ' + (response?.error || 'Unknown error')));
+                        }
+                    });
+                });
+                
+                // Race between screenshot and timeout
+                const response = await Promise.race([screenshotPromise, timeoutPromise]);
+                
+                updateCaptureProgress(4, 4, 'Complete!');
+                
+                console.log('Aspecta Simulator: Screenshot captured successfully');
+                const img = document.getElementById('screenshotPreview');
+                img.src = response.dataUrl;
+                img.style.display = 'block';
+                
+                // Hide loading elements
+                loadingMsg.style.display = 'none';
+                if (progressFill) progressFill.style.width = '0%';
+                if (stepIndicator) stepIndicator.textContent = '';
+                
             } catch (error) {
-                showError('Error: ' + error.message);
+                console.error('Aspecta Simulator: Screenshot error:', error);
+                
+                // Show user-friendly error message with fallback options
+                let errorMsg = error.message;
+                if (error.message.includes('timeout')) {
+                    errorMsg = 'Screenshot taking longer than expected. Click 📸 to retry or 🔗 to open original.';
+                } else if (error.message.includes('Extension API')) {
+                    errorMsg = 'Extension API issue. Try reloading the extension.';
+                } else if (error.message.includes('No target URL')) {
+                    errorMsg = 'Invalid website URL. Try opening a different website.';
+                } else if (error.message.includes('communication error')) {
+                    errorMsg = 'Connection to extension failed. Check extension status.';
+                }
+                
+                showError(errorMsg);
+                
+                // Show fallback message
+                const loadingMsg = document.getElementById('loadingMessage');
+                loadingMsg.textContent = '⚠️ Auto-capture failed. Click 📸 to retry manually.';
+                loadingMsg.style.display = 'block';
+                
+                // Reset progress indicators
+                const progressFill = document.getElementById('progressFill');
+                const stepIndicator = document.getElementById('stepIndicator');
+                if (progressFill) progressFill.style.width = '0%';
+                if (stepIndicator) stepIndicator.textContent = 'Click 📸 to retry';
             }
         }
         

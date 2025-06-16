@@ -586,6 +586,9 @@ class AspectaPopup {
     }    async createSimulatorWindow(width, height, deviceInfo, userAgent) {
         try {
             console.log('Aspecta: Creating simulator window for', deviceInfo.label);
+            console.log('Aspecta: Current tab URL:', this.currentTab?.url);
+            console.log('Aspecta: Dimensions:', width, 'x', height);
+            console.log('Aspecta: User Agent:', userAgent?.slice(0, 50) + '...');
             
             // Calculate window dimensions with device frame padding
             const frameWidth = width + 80;  // Extra space for device frame
@@ -600,6 +603,14 @@ class AspectaPopup {
                 `&userAgent=${encodeURIComponent(userAgent || '')}`;
             
             console.log('Aspecta: Opening simulator URL:', simulatorUrl);
+            console.log('Aspecta: URL length:', simulatorUrl.length);
+            
+            // Validate current tab URL
+            if (!this.currentTab.url || this.currentTab.url.startsWith('chrome://')) {
+                throw new Error('Cannot simulate chrome:// or system pages. Please navigate to a regular website.');
+            }
+            
+            console.log('Aspecta: Creating window with dimensions:', frameWidth, 'x', frameHeight);
             
             // Open simulator in new window
             const simulatorWindow = await chrome.windows.create({
@@ -615,11 +626,23 @@ class AspectaPopup {
             this.simulatorWindowId = simulatorWindow.id;
             
             console.log('Aspecta: Simulator window created with ID:', simulatorWindow.id);
+            console.log('Aspecta: Window tabs:', simulatorWindow.tabs?.length || 0);
+            
+            // Set a timeout to check if window opened properly
+            setTimeout(() => {
+                chrome.windows.get(simulatorWindow.id, (window) => {
+                    if (chrome.runtime.lastError) {
+                        console.error('Aspecta: Simulator window check failed:', chrome.runtime.lastError);
+                    } else {
+                        console.log('Aspecta: Simulator window still exists after 3s');
+                    }
+                });
+            }, 3000);
             
         } catch (error) {
             console.error('Failed to create simulator window:', error);
             throw error;
-        }    }
+        }}
 
     getDeviceFrameClass(deviceLabel) {
         const label = deviceLabel.toLowerCase();

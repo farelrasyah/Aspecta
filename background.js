@@ -48,12 +48,15 @@ class AspectaBackground {
                 this.getTabInfo(message.tabId || sender.tab?.id)
                     .then(info => sendResponse({ success: true, data: info }))
                     .catch(error => sendResponse({ success: false, error: error.message }));
-                break;
-
-            case 'captureScreenshot':
+                break;            case 'captureScreenshot':
                 this.captureWebsiteScreenshot(message.url, message.width, message.height, message.userAgent)
                     .then(dataUrl => sendResponse({ success: true, dataUrl: dataUrl }))
                     .catch(error => sendResponse({ success: false, error: error.message }));
+                break;
+
+            case 'ping':
+                // Simple ping test for extension communication
+                sendResponse({ success: true, message: 'Extension is working' });
                 break;
 
             default:
@@ -159,17 +162,24 @@ class AspectaBackground {
             console.log(`Aspecta Background: Starting screenshot capture for ${url} at ${width}x${height}`);
             
             // Validate URL
-            if (!url || url === 'undefined') {
+            if (!url || url === 'undefined' || url === 'null') {
                 throw new Error('Invalid URL provided');
             }
             
-            // Create a temporary tab with specific dimensions
+            // Check if URL is accessible
+            if (url.startsWith('chrome://') || url.startsWith('chrome-extension://') || 
+                url.startsWith('edge://') || url.startsWith('about:')) {
+                throw new Error('Cannot capture internal browser pages');
+            }
+            
             console.log('Aspecta Background: Creating temporary window...');
+            
+            // Create a temporary tab with specific dimensions (optimized size)
             const tempWindow = await chrome.windows.create({
                 url: url,
                 type: 'popup',
-                width: width + 20,
-                height: height + 100,
+                width: Math.min(width + 20, 800), // Reduced max width for faster loading
+                height: Math.min(height + 80, 600), // Reduced max height for faster loading  
                 left: -9999, // Hide off-screen
                 top: -9999,
                 focused: false
@@ -177,38 +187,50 @@ class AspectaBackground {
 
             console.log('Aspecta Background: Temporary window created, waiting for page load...');
 
-            // Wait for page to load
+            // Wait for page to load with optimized timeout
             await new Promise(resolve => {
+                let resolved = false;
+                
                 const listener = (tabId, changeInfo) => {
-                    if (changeInfo.status === 'complete' && tabId === tempWindow.tabs[0].id) {
+                    if (changeInfo.status === 'complete' && tabId === tempWindow.tabs[0].id && !resolved) {
                         chrome.tabs.onUpdated.removeListener(listener);
+                        resolved = true;
                         console.log('Aspecta Background: Page loaded');
                         resolve();
                     }
                 };
                 chrome.tabs.onUpdated.addListener(listener);
                 
-                // Fallback timeout
+                // Further reduced timeout from 3s to 2s
                 setTimeout(() => {
-                    console.log('Aspecta Background: Page load timeout, proceeding anyway');
-                    resolve();
-                }, 5000);
+                    if (!resolved) {
+                        resolved = true;
+                        chrome.tabs.onUpdated.removeListener(listener);
+                        console.log('Aspecta Background: Page load timeout, proceeding anyway');
+                        resolve();
+                    }
+                }, 2000);
             });
 
-            // Apply user agent if provided
+            // Apply user agent if provided (skip reload for speed)
             if (userAgent && userAgent !== 'undefined' && userAgent.trim()) {
-                console.log('Aspecta Background: Applying user agent...');
-                await this.setUserAgentForTab(tempWindow.tabs[0].id, userAgent);
-                // Reload to apply user agent
-                await chrome.tabs.reload(tempWindow.tabs[0].id);
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                console.log('Aspecta Background: Applying user agent (without reload)...');
+                try {
+                    await this.setUserAgentForTab(tempWindow.tabs[0].id, userAgent);
+                } catch (error) {
+                    console.warn('Aspecta Background: User agent setup failed, continuing...', error);
+                }
             }
 
+            // Reduced rendering delay from 500ms to 200ms
+            await new Promise(resolve => setTimeout(resolve, 200));
+
             console.log('Aspecta Background: Capturing screenshot...');
-            // Capture screenshot
+            
+            // Capture screenshot with optimized quality
             const dataUrl = await chrome.tabs.captureVisibleTab(tempWindow.id, {
                 format: 'png',
-                quality: 100
+                quality: 85 // Further reduced from 90 to 85 for faster processing
             });
 
             console.log('Aspecta Background: Screenshot captured successfully');
@@ -221,7 +243,18 @@ class AspectaBackground {
 
         } catch (error) {
             console.error('Aspecta Background: Screenshot capture failed:', error);
-            throw new Error(`Screenshot capture failed: ${error.message}`);
+            
+            // Provide more specific error messages
+            let errorMessage = error.message;
+            if (error.message.includes('Cannot capture')) {
+                errorMessage = 'Cannot capture internal browser pages. Please navigate to a regular website.';
+            } else if (error.message.includes('Invalid URL')) {
+                errorMessage = 'Invalid website URL. Please check the current tab.';
+            } else if (error.message.includes('No tab with id')) {
+                errorMessage = 'Browser tab not found. Please refresh and try again.';
+            }
+            
+            throw new Error(errorMessage);
         }
     }
 
