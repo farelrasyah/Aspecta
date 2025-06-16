@@ -106,9 +106,7 @@ class AspectaPopup {
         // Reset button
         document.getElementById('resetBtn').addEventListener('click', () => {
             this.resetSimulation();
-        });
-
-        // Screenshot button
+        });        // Screenshot button
         document.getElementById('screenshotBtn').addEventListener('click', () => {
             this.takeScreenshot();
         });
@@ -118,13 +116,24 @@ class AspectaPopup {
             this.saveCurrentAsPreset();
         });
 
+        // Simulator controls
+        document.getElementById('fullscreenBtn').addEventListener('click', () => {
+            this.openSimulatorInNewWindow();
+        });
+
+        document.getElementById('closeSimulatorBtn').addEventListener('click', () => {
+            this.closeSimulator();
+        });
+
         // Input changes
         document.getElementById('widthInput').addEventListener('input', () => {
             this.updateCurrentInfo();
+            this.updateSimulatorIfActive();
         });
 
         document.getElementById('heightInput').addEventListener('input', () => {
             this.updateCurrentInfo();
+            this.updateSimulatorIfActive();
         });
     }
 
@@ -174,10 +183,10 @@ class AspectaPopup {
                 // Switch to portrait (height > width)
                 if (width > height) {
                     widthInput.value = height;
-                    heightInput.value = width;
-                }
+                    heightInput.value = width;                }
             }
             this.updateCurrentInfo();
+            this.updateSimulatorIfActive();
         }
     }    async applySimulation() {
         const widthInput = document.getElementById('widthInput');
@@ -259,10 +268,11 @@ class AspectaPopup {
             } catch (contentError) {
                 console.warn('Content script communication failed:', contentError);
                 // Continue anyway - window resize should still work
-            }
-
-            this.setStatus('Simulation applied successfully!', 'ready');
+            }            this.setStatus('Simulation applied successfully!', 'ready');
             this.updateCurrentInfo();
+            
+            // Show device simulator
+            this.showDeviceSimulator(width, height, deviceSelect.value);
             
         } catch (error) {
             console.error('Failed to apply simulation:', error);
@@ -328,10 +338,11 @@ class AspectaPopup {
             document.getElementById('deviceSelect').value = '';
             document.getElementById('widthInput').value = '';
             document.getElementById('heightInput').value = '';
-            document.getElementById('landscapeToggle').checked = false;
-
-            this.setStatus('Reset complete', 'ready');
+            document.getElementById('landscapeToggle').checked = false;            this.setStatus('Reset complete', 'ready');
             this.updateCurrentInfo();
+            
+            // Hide device simulator
+            this.closeSimulator();
             
         } catch (error) {
             console.error('Failed to reset simulation:', error);
@@ -457,6 +468,163 @@ class AspectaPopup {
         buttons.forEach(id => {
             document.getElementById(id).disabled = disabled;
         });
+    }
+
+    showDeviceSimulator(width, height, deviceValue) {
+        console.log('Aspecta Popup: Showing device simulator', width, height);
+        
+        // Parse device info
+        let deviceInfo = { label: 'Custom Device' };
+        if (deviceValue) {
+            try {
+                const device = JSON.parse(deviceValue);
+                const deviceData = this.devices.find(d => d.width === device.width && d.height === device.height);
+                if (deviceData) {
+                    deviceInfo = deviceData;
+                }
+            } catch (e) {
+                console.warn('Could not parse device value:', e);
+            }
+        }
+
+        // Show simulator section
+        const simulatorSection = document.getElementById('simulatorSection');
+        simulatorSection.classList.add('show');
+
+        // Update device info
+        document.getElementById('deviceLabel').textContent = deviceInfo.label;
+        document.getElementById('deviceDimensions').textContent = `${width}×${height}`;
+
+        // Set device frame style based on device type
+        const deviceFrame = document.getElementById('deviceFrame');
+        deviceFrame.className = 'device-frame';
+        
+        if (deviceInfo.label.toLowerCase().includes('iphone') || deviceInfo.label.toLowerCase().includes('ios')) {
+            deviceFrame.classList.add('iphone');
+        } else if (deviceInfo.label.toLowerCase().includes('galaxy') || deviceInfo.label.toLowerCase().includes('pixel') || deviceInfo.label.toLowerCase().includes('android')) {
+            deviceFrame.classList.add('android');
+        } else if (deviceInfo.label.toLowerCase().includes('ipad') || width > 600) {
+            deviceFrame.classList.add('tablet');
+        }
+
+        // Set screen orientation
+        const deviceScreen = document.getElementById('deviceScreen');
+        const isLandscape = document.getElementById('landscapeToggle').checked;
+        if (isLandscape) {
+            deviceScreen.classList.add('landscape');
+        } else {
+            deviceScreen.classList.remove('landscape');
+        }
+
+        // Load current tab in iframe
+        this.loadCurrentTabInSimulator();
+    }
+
+    async loadCurrentTabInSimulator() {
+        const iframe = document.getElementById('simulatorIframe');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        
+        // Show loading
+        loadingOverlay.classList.remove('hidden');
+
+        try {
+            if (this.currentTab && this.currentTab.url) {
+                // Check if URL is accessible
+                if (this.currentTab.url.startsWith('chrome://') || 
+                    this.currentTab.url.startsWith('chrome-extension://') ||
+                    this.currentTab.url.startsWith('edge://') ||
+                    this.currentTab.url.startsWith('about:')) {
+                    
+                    // Use test page for unsupported URLs
+                    iframe.src = chrome.runtime.getURL('test.html');
+                } else {
+                    iframe.src = this.currentTab.url;
+                }
+
+                // Hide loading after iframe loads
+                iframe.onload = () => {
+                    setTimeout(() => {
+                        loadingOverlay.classList.add('hidden');
+                    }, 500);
+                };
+
+                // Fallback: hide loading after timeout
+                setTimeout(() => {
+                    loadingOverlay.classList.add('hidden');
+                }, 3000);
+                
+            } else {
+                iframe.src = chrome.runtime.getURL('test.html');
+                setTimeout(() => {
+                    loadingOverlay.classList.add('hidden');
+                }, 1000);
+            }
+        } catch (error) {
+            console.error('Failed to load tab in simulator:', error);
+            iframe.src = chrome.runtime.getURL('test.html');
+            setTimeout(() => {
+                loadingOverlay.classList.add('hidden');
+            }, 1000);
+        }
+    }
+
+    updateSimulatorIfActive() {
+        const simulatorSection = document.getElementById('simulatorSection');
+        if (simulatorSection.classList.contains('show')) {
+            const width = parseInt(document.getElementById('widthInput').value);
+            const height = parseInt(document.getElementById('heightInput').value);
+            
+            if (width && height) {
+                document.getElementById('deviceDimensions').textContent = `${width}×${height}`;
+                
+                // Update screen orientation
+                const deviceScreen = document.getElementById('deviceScreen');
+                const isLandscape = document.getElementById('landscapeToggle').checked;
+                if (isLandscape) {
+                    deviceScreen.classList.add('landscape');
+                } else {
+                    deviceScreen.classList.remove('landscape');
+                }
+            }
+        }
+    }
+
+    closeSimulator() {
+        const simulatorSection = document.getElementById('simulatorSection');
+        simulatorSection.classList.remove('show');
+        
+        // Clear iframe
+        document.getElementById('simulatorIframe').src = '';
+    }
+
+    async openSimulatorInNewWindow() {
+        const width = parseInt(document.getElementById('widthInput').value);
+        const height = parseInt(document.getElementById('heightInput').value);
+        
+        if (!width || !height) {
+            this.setStatus('Please set dimensions first', 'error');
+            return;
+        }
+
+        try {
+            const currentUrl = this.currentTab?.url || chrome.runtime.getURL('test.html');
+            
+            // Open new window with specific dimensions
+            const newWindow = await chrome.windows.create({
+                url: currentUrl,
+                type: 'popup',
+                width: width + 40, // Add some padding for window chrome
+                height: height + 80,
+                left: 100,
+                top: 100
+            });
+
+            this.setStatus('Opened in new window', 'ready');
+            
+        } catch (error) {
+            console.error('Failed to open simulator window:', error);
+            this.setStatus('Failed to open new window', 'error');
+        }
     }
 }
 

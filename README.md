@@ -1,195 +1,177 @@
-# 📱 Aspecta - Mobile Simulator Chrome Extension
+# 📱 Aspecta - Mobile Device Simulator
 
-**Aspecta** adalah Chrome Extension untuk menguji tampilan website di berbagai ukuran perangkat mobile secara cepat dan mudah, langsung dari popup extension tanpa perlu membuka DevTools.
+> **Chrome Extension dengan Visual Device Simulator untuk responsive testing yang realistis**
 
-## ✨ Fitur Utama
+![Aspecta Preview](https://img.shields.io/badge/Chrome-Extension-brightgreen) ![Version](https://img.shields.io/badge/Version-1.0.0-blue) ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-### 🎯 Simulasi Viewport
-- **Preset Perangkat Populer**: iPhone SE, iPhone 14 Pro, Galaxy S22, Pixel 7, iPad, dll.
-- **Custom Dimensions**: Input manual width x height sesuai kebutuhan
-- **Rotation Toggle**: Beralih antara mode Portrait dan Landscape
-- **Real-time Resize**: Ubah dimensi window aktual tanpa reload halaman
+## ✨ Fitur Terbaru: Visual Device Simulator
 
-### 🔧 Fitur Tambahan
-- **Mobile User Agent**: Emulasi user-agent header untuk tampilan mobile asli
-- **Screenshot**: Ambil screenshot langsung dari popup
-- **Custom Presets**: Simpan dan kelola preset ukuran custom
-- **Visual Indicator**: Indikator simulasi yang bisa dihilangkan
-- **Auto-cleanup**: Membersihkan rules yang tidak terpakai secara otomatis
+### 🎯 **Device Frame Preview**
+- **Frame perangkat realistis** dengan style iPhone, Android, dan Tablet
+- **Live website preview** dalam frame perangkat yang dipilih
+- **Real-time rendering** website dalam simulasi visual
+- **Responsive preview** langsung di popup extension
 
-### 💾 Penyimpanan Lokal
-- Simpan custom presets menggunakan `chrome.storage.local`
-- Presets tersimpan permanen hingga dihapus manual
+### 📱 **Cara Kerja Simulator Visual**
 
-## 🚀 Instalasi
+1. **Pilih Device** → Extension menampilkan frame perangkat
+2. **Apply Simulation** → Website dimuat dalam frame simulator
+3. **Live Preview** → Lihat website dalam bentuk perangkat sebenarnya
+4. **Interactive** → Resize, rotate, dan screenshot langsung
 
-### Cara 1: Install dari File
-1. Download atau clone repository ini
-2. Buka Chrome dan navigasi ke `chrome://extensions/`
-3. Aktifkan "Developer mode" di pojok kanan atas
-4. Klik "Load unpacked" dan pilih folder `Aspecta`
-5. Extension siap digunakan!
+## 🚀 Penggunaan
 
-### Cara 2: Install dari ZIP
-1. Download repository sebagai ZIP
-2. Extract ke folder pilihan Anda
-3. Ikuti langkah 2-5 dari cara 1
-
-## 📖 Cara Penggunaan
-
-### Simulasi Cepat
-1. Klik ikon Aspecta di toolbar Chrome
-2. Pilih perangkat dari dropdown "Device Preset"
-3. Klik "Apply Simulation"
-4. Website akan menyesuaikan ukuran sesuai perangkat yang dipilih
-
-### Custom Dimensions
-1. Buka popup Aspecta
-2. Masukkan width dan height manual di bagian "Custom Dimensions"
-3. Toggle "Landscape Mode" jika diperlukan
-4. Klik "Apply Simulation"
-
-### Mengelola Preset
-1. Atur dimensi yang diinginkan (preset atau custom)
-2. Klik "Save Current" untuk menyimpan sebagai preset
-3. Preset akan muncul di bagian "Custom Presets"
-4. Klik preset untuk menggunakan, atau "×" untuk menghapus
-
-### Screenshot
-1. Setelah apply simulasi
-2. Klik tombol "Take Screenshot"
-3. File screenshot akan otomatis terdownload
-
-### Reset Simulasi
-1. Klik tombol "Reset" untuk mengembalikan tampilan normal
-2. Semua perubahan viewport dan user agent akan direset
-
-## 🏗️ Arsitektur
-
-```
-Aspecta/
-├── manifest.json          # Chrome Extension Manifest V3
-├── popup.html             # Interface popup utama
-├── popup.js               # Logika UI dan kontrol simulasi
-├── styles.css             # Styling untuk popup
-├── content.js             # Content script untuk manipulasi viewport
-├── background.js          # Service worker untuk user agent & tab management
-├── devices.json           # Database preset perangkat
-├── icons/                 # Ikon extension
-│   ├── icon.svg          # Vector icon source
-│   ├── icon-16.png       # Icon 16x16
-│   ├── icon-32.png       # Icon 32x32
-│   ├── icon-48.png       # Icon 48x48
-│   └── icon-128.png      # Icon 128x128
-└── README.md             # Dokumentasi ini
+### 1. **Install Extension**
+```bash
+1. Buka chrome://extensions
+2. Enable "Developer mode"  
+3. Click "Load unpacked"
+4. Pilih folder Aspecta
 ```
 
-## 🔧 Fitur Teknis
+### 2. **Menggunakan Visual Simulator**
 
-### Permissions yang Digunakan
-- `activeTab`: Akses tab aktif untuk screenshot dan manipulasi
-- `tabs`: Mengelola informasi tab
-- `windows`: Mengubah ukuran window browser
-- `storage`: Menyimpan custom presets
-- `webNavigation`: Monitoring navigasi halaman
+#### **📱 Quick Start:**
+```bash
+1. 🔓 Buka website yang ingin ditest
+2. 📱 Klik icon Aspecta di toolbar
+3. 📋 Pilih device (iPhone SE, Galaxy S22, dll)
+4. ✅ Klik "Apply Device Simulation"
+5. 👀 Lihat preview dalam frame perangkat!
+```
 
-### API Chrome yang Digunakan
-- `chrome.tabs`: Tab management dan screenshot
-- `chrome.windows`: Window resizing
-- `chrome.storage.local`: Penyimpanan preset
-- `chrome.declarativeNetRequest`: User agent manipulation
-- `chrome.runtime`: Message passing antar komponen
+#### **🎨 Visual Preview Features:**
+- **Device Frame**: Frame realistis sesuai jenis perangkat
+- **Live Website**: Website dimuat langsung dalam frame
+- **Orientation**: Toggle portrait/landscape dengan visual update
+- **Device Info**: Label dan dimensi ditampilkan di bawah frame
 
-### Teknologi
-- **Manifest V3**: Format extension Chrome terbaru
-- **Service Worker**: Background processing
-- **Content Scripts**: DOM manipulation
-- **Modern CSS**: Gradients, flexbox, animations
-- **Vanilla JavaScript**: Tanpa dependency eksternal
+#### **🔧 Advanced Controls:**
+- **🔍 Fullscreen**: Buka simulator dalam window terpisah
+- **📸 Screenshot**: Capture preview untuk dokumentasi
+- **✕ Close**: Tutup device preview
+- **⚙️ Custom Size**: Input dimensi manual dengan live preview
 
-## 🎨 UI/UX Features
+### 3. **Device Frame Styles**
 
-- **Modern Design**: Gradient background dengan border radius
-- **Responsive Layout**: Layout yang menyesuaikan konten
-- **Smooth Animations**: Transisi halus untuk toggle dan button
-- **Visual Feedback**: Status indicator dan loading states
-- **Mobile-friendly**: Interface yang mudah digunakan
-- **Color-coded Status**: Warna berbeda untuk status yang berbeda
+```
+🍎 iPhone Style          🤖 Android Style         📱 Tablet Style
+┌─────────────────┐     ┌───────────────────┐    ┌─────────────────────┐
+│ ╭─────────────╮ │     │ ┌───────────────┐ │    │ ┌─────────────────┐ │
+│ │             │ │     │ │               │ │    │ │                 │ │
+│ │   Website   │ │     │ │    Website    │ │    │ │     Website     │ │
+│ │   Preview   │ │     │ │    Preview    │ │    │ │     Preview     │ │
+│ │             │ │     │ │               │ │    │ │                 │ │
+│ ╰─────────────╯ │     │ └───────────────┘ │    │ └─────────────────┘ │
+│  iPhone SE      │     │   Galaxy S22      │    │    iPad Air         │
+└─────────────────┘     └───────────────────┘    └─────────────────────┘
+```
 
-## ⚠️ Catatan Penting
+## 📱 Device Presets
 
-### Limitasi
-- Extension bekerja pada tab aktif saja
-- Beberapa website mungkin menggunakan teknik responsive yang kompleks
-- User agent override mungkin tidak bekerja di semua situs
-- Window resizing dibatasi oleh sistem operasi
+### **🍎 iPhone Series**
+- iPhone SE (375×667)
+- iPhone 12/13/14 (390×844) 
+- iPhone 14 Pro (393×852)
+- iPhone 14 Pro Max (428×926)
 
-### Browser Support
-- Chrome 100+ (untuk Manifest V3)
-- Chromium-based browsers dengan dukungan extension
+### **🤖 Android Series**
+- Galaxy S22 (360×780)
+- Galaxy S22 Ultra (384×854)
+- Google Pixel 7 (412×915)
+- Google Pixel 7 Pro (412×892)
 
-### Troubleshooting
-- Jika simulasi tidak bekerja, coba refresh halaman
-- Untuk website kompleks, mungkin perlu beberapa kali apply
-- Pastikan website tidak menggunakan iframe yang kompleks
+### **📱 Tablet Series**
+- iPad Mini (768×1024)
+- iPad Air (820×1180)
+- iPad Pro 11" (834×1194)
+- iPad Pro 12.9" (1024×1366)
+
+## 🎨 Interface Overview
+
+```
+┌─────────────────────────────────────────────┐
+│  📱 Aspecta Mobile Simulator                │
+├─────────────────────────────────────────────┤
+│  Device Preset: [iPhone SE ▼]              │
+│  Width: [375] Height: [667]                 │
+│  □ Landscape Mode  ☑ Mobile User Agent     │
+│                                             │
+│  [📱 Apply Device Simulation]               │
+│  [🔄 Reset] [📸 Screenshot]                 │
+│                                             │
+│  ┌─────────── Device Preview ─────────────┐ │
+│  │ [🔍] [✕]                              │ │
+│  │ ┌─────────────────────────────────────┐ │ │
+│  │ │ ╭─────────────────────────────────╮ │ │ │
+│  │ │ │                                 │ │ │ │
+│  │ │ │      Live Website Preview       │ │ │ │
+│  │ │ │     dalam Frame iPhone SE       │ │ │ │
+│  │ │ │                                 │ │ │ │
+│  │ │ ╰─────────────────────────────────╯ │ │ │
+│  │ └─────────────────────────────────────┘ │ │
+│  │        iPhone SE • 375×667              │ │
+│  └─────────────────────────────────────────┘ │
+└─────────────────────────────────────────────┘
+```
 
 ## 🔧 Troubleshooting
 
-Jika Anda mengalami error "failed to apply simulation", ikuti langkah berikut:
+### ❌ Common Issues & Solutions:
 
-### Quick Debug:
-1. **Buka Developer Tools (F12) → Console**
-2. **Cari log "Aspecta: Content script initialized"**
-3. **Cari log "Aspecta Popup: Current tab: [URL]"**
-4. **Screenshot error yang muncul**
+**"Failed to apply simulation"**
+- ✅ Pastikan bukan di halaman `chrome://` atau `chrome-extension://`
+- ✅ Gunakan website normal (google.com, github.com)
+- ✅ Refresh halaman dan reload extension jika perlu
 
-### Common Issues:
-- ❌ **Halaman tidak didukung:** Extension tidak bekerja di `chrome://`, `chrome-extension://`, dll
-- ✅ **Solusi:** Buka website normal (google.com, github.com) atau gunakan `test.html`
+**Preview tidak muncul**
+- ✅ Cek console browser (F12) untuk error messages
+- ✅ Test dengan file `test.html` yang disediakan
+- ✅ Pastikan browser tidak dalam fullscreen mode
 
-- ❌ **Content script error:** Extension tidak merespons
-- ✅ **Solusi:** Refresh halaman web, reload extension di chrome://extensions
+**Device frame tidak sesuai**
+- ✅ Coba berbagai device preset untuk melihat style yang berbeda
+- ✅ Toggle landscape/portrait untuk melihat perubahan frame
+- ✅ Gunakan fullscreen mode untuk preview yang lebih besar
 
-- ❌ **Permission error:** Window tidak resize
-- ✅ **Solusi:** Pastikan browser tidak fullscreen, disable zoom (100%)
+### 🧪 Testing dengan Test File
 
-### Test File:
-Gunakan file `test.html` untuk testing awal - file ini dibuat khusus untuk memverifikasi extension bekerja dengan benar.
+Extension menyediakan `test.html` khusus untuk testing:
+```bash
+1. Apply simulation dengan device apapun
+2. Preview akan otomatis load test.html jika halaman tidak supported
+3. Test.html menampilkan informasi viewport real-time
+4. Sempurna untuk memverifikasi extension bekerja dengan benar
+```
 
-**Lihat file `TROUBLESHOOTING.md` untuk panduan lengkap debugging.**
+## 📋 Technical Details
 
-## 🤝 Kontribusi
+### **Architecture:**
+- **Manifest V3** Chrome Extension
+- **Content Script** untuk viewport manipulation
+- **Background Service Worker** untuk user agent handling
+- **Popup Interface** dengan embedded device simulator
 
-Kontribusi sangat diterima! Silakan:
+### **Permissions:**
+- `tabs` - Akses tab aktif untuk simulation
+- `windows` - Resize window untuk fullscreen simulator
+- `storage` - Simpan custom presets
+- `activeTab` - Interaksi dengan halaman web
 
-1. Fork repository ini
-2. Buat branch fitur baru (`git checkout -b feature/AmazingFeature`)
-3. Commit perubahan (`git commit -m 'Add some AmazingFeature'`)
-4. Push ke branch (`git push origin feature/AmazingFeature`)
-5. Buat Pull Request
+### **Supported Pages:**
+- ✅ HTTP/HTTPS websites
+- ✅ Local HTML files
+- ✅ Extension test.html
+- ❌ Chrome internal pages (chrome://, chrome-extension://)
 
-### Ide Pengembangan
-- [ ] Multi-device preview grid
-- [ ] Export/import preset collections
-- [ ] Integration dengan design tools
-- [ ] Performance monitoring
-- [ ] Advanced screenshot options
+## 🎯 Use Cases
 
-## 📄 Lisensi
-
-Distributed under the MIT License. See `LICENSE` for more information.
-
-## 👨‍💻 Author
-
-**Farel Rasyah**
-- Extension ini dibuat untuk memudahkan development dan testing responsive design
-
-## 🙏 Acknowledgments
-
-- Chrome Extension Documentation
-- Modern web development best practices
-- Community feedback dan suggestions
+- **👨‍💻 Web Developers**: Testing responsive design dengan preview visual
+- **🧪 QA Testers**: Verifikasi tampilan di berbagai device sizes
+- **🎨 UI/UX Designers**: Melihat design dalam konteks device frame
+- **📱 Mobile Testing**: Simulasi mobile experience dengan user agent
+- **📸 Documentation**: Screenshot untuk laporan testing
 
 ---
 
-**Happy Testing! 🚀**
+**✨ Aspecta - Making responsive testing visual and intuitive!**

@@ -57,28 +57,24 @@
                         <span class="toggle-text">Mobile User Agent</span>
                     </label>
                 </div>
-            </div>
-
-            <!-- Action Buttons -->
+            </div>            <!-- Action Buttons -->
             <div class="section">
                 <div class="button-group">
                     <button id="applyBtn" class="btn btn-primary">
                         <span class="btn-icon">📱</span>
-                        Apply Simulation
+                        Apply Device Simulation
                     </button>
-                    <button id="resetBtn" class="btn btn-secondary">
-                        <span class="btn-icon">🔄</span>
-                        Reset
-                    </button>
+                    <div style="display: flex; gap: 8px;">
+                        <button id="resetBtn" class="btn btn-secondary">
+                            <span class="btn-icon">🔄</span>
+                            Reset
+                        </button>
+                        <button id="screenshotBtn" class="btn btn-secondary">
+                            <span class="btn-icon">📸</span>
+                            Screenshot
+                        </button>
+                    </div>
                 </div>
-            </div>
-
-            <!-- Screenshot Section -->
-            <div class="section">
-                <button id="screenshotBtn" class="btn btn-tertiary">
-                    <span class="btn-icon">📸</span>
-                    Take Screenshot
-                </button>
             </div>
 
             <!-- Saved Presets -->
@@ -88,9 +84,7 @@
                     <button id="savePresetBtn" class="btn-small">Save Current</button>
                 </div>
                 <div id="customPresets" class="custom-presets"></div>
-            </div>
-
-            <!-- Current Info -->
+            </div>            <!-- Current Info -->
             <div class="section">
                 <div class="current-info">
                     <div class="info-item">
@@ -100,6 +94,30 @@
                     <div class="info-item">
                         <span class="info-label">Status:</span>
                         <span id="statusText" class="status-ready">Ready</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Device Simulator Preview -->
+            <div class="section" id="simulatorSection" style="display: none;">
+                <div class="simulator-header">
+                    <label>Device Preview:</label>
+                    <div class="simulator-controls">
+                        <button id="fullscreenBtn" class="btn-icon-small" title="Open in new window">🔍</button>
+                        <button id="closeSimulatorBtn" class="btn-icon-small" title="Close preview">✕</button>
+                    </div>
+                </div>
+                <div class="device-frame" id="deviceFrame">
+                    <div class="device-screen" id="deviceScreen">
+                        <iframe id="simulatorIframe" src="" frameborder="0"></iframe>
+                        <div class="loading-overlay" id="loadingOverlay">
+                            <div class="loading-spinner"></div>
+                            <p>Loading preview...</p>
+                        </div>
+                    </div>
+                    <div class="device-info" id="deviceInfo">
+                        <span id="deviceLabel">iPhone SE</span>
+                        <span id="deviceDimensions">375×667</span>
                     </div>
                 </div>
             </div>

@@ -12,12 +12,14 @@ body {
 }
 
 .container {
-    width: 380px;
-    min-height: 580px;
+    width: 420px;
+    min-height: 600px;
     background: white;
     border-radius: 12px;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
     overflow: hidden;
+    max-height: 800px;
+    overflow-y: auto;
 }
 
 .header {
@@ -148,7 +150,20 @@ label {
 
 .button-group {
     display: flex;
+    flex-direction: column;
     gap: 8px;
+}
+
+.button-group .btn-primary {
+    width: 100%;
+    padding: 14px 20px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.button-group .btn-secondary {
+    width: 100%;
+    flex: 1;
 }
 
 .btn {
@@ -338,4 +353,199 @@ label {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #a1a1a1;
+}
+
+/* Device Simulator Styles */
+.simulator-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.simulator-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-icon-small {
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-icon-small:hover {
+    background: #e5e7eb;
+    border-color: #d1d5db;
+}
+
+.device-frame {
+    background: #1f2937;
+    border-radius: 20px;
+    padding: 20px 12px;
+    position: relative;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.device-screen {
+    position: relative;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    aspect-ratio: 9/16; /* Default mobile ratio */
+    min-height: 250px;
+    max-height: 350px;
+    width: 100%;
+}
+
+.device-screen.landscape {
+    aspect-ratio: 16/9;
+}
+
+#simulatorIframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: white;
+}
+
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.loading-overlay.hidden {
+    display: none;
+}
+
+.loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #e5e7eb;
+    border-top: 3px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 12px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-overlay p {
+    color: #6b7280;
+    font-size: 14px;
+    margin: 0;
+}
+
+.device-info {
+    text-align: center;
+    margin-top: 12px;
+    color: #9ca3af;
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#deviceLabel {
+    font-weight: 500;
+    color: #d1d5db;
+}
+
+#deviceDimensions {
+    font-family: 'Courier New', monospace;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* Responsive adjustments for simulator */
+@media (max-width: 420px) {
+    .container {
+        width: 100vw;
+        min-height: 100vh;
+        border-radius: 0;
+    }
+    
+    .device-frame {
+        padding: 12px 8px;
+    }
+    
+    .device-screen {
+        max-height: 250px;
+    }
+}
+
+/* iPhone-style frame */
+.device-frame.iphone {
+    background: linear-gradient(145deg, #2d3748, #1a202c);
+    border-radius: 25px;
+    padding: 24px 16px;
+    box-shadow: 
+        inset 0 2px 4px rgba(255, 255, 255, 0.1),
+        0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.device-frame.iphone .device-screen {
+    border-radius: 18px;
+    border: 2px solid #4a5568;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* Android-style frame */
+.device-frame.android {
+    background: linear-gradient(145deg, #374151, #1f2937);
+    border-radius: 15px;
+    padding: 20px 12px;
+    box-shadow: 
+        inset 0 1px 3px rgba(255, 255, 255, 0.1),
+        0 6px 12px rgba(0, 0, 0, 0.25);
+}
+
+.device-frame.android .device-screen {
+    border-radius: 8px;
+    border: 1px solid #6b7280;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* iPad-style frame */
+.device-frame.tablet {
+    background: linear-gradient(145deg, #4b5563, #374151);
+    border-radius: 20px;
+    padding: 24px 20px;
+}
+
+.device-frame.tablet .device-screen {
+    aspect-ratio: 4/3;
+    border-radius: 12px;
+}
+
+/* Simulator section show/hide animation */
+#simulatorSection {
+    transition: all 0.3s ease;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+}
+
+#simulatorSection.show {
+    opacity: 1;
+    max-height: 600px;
+    display: block !important;
 }

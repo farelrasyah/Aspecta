@@ -38,10 +38,9 @@
       "run_at": "document_start",
       "all_frames": false
     }
-  ],
-  "web_accessible_resources": [
+  ],  "web_accessible_resources": [
     {
-      "resources": ["devices.json"],
+      "resources": ["devices.json", "test.html"],
       "matches": ["<all_urls>"]
     }
   ]
