@@ -51,8 +51,8 @@ class AspectaBackground {
                 break;
 
             case 'captureScreenshot':
-                this.captureScreenshot(message.tabId || sender.tab?.id)
-                    .then(dataUrl => sendResponse({ success: true, dataUrl }))
+                this.captureWebsiteScreenshot(message.url, message.width, message.height, message.userAgent)
+                    .then(dataUrl => sendResponse({ success: true, dataUrl: dataUrl }))
                     .catch(error => sendResponse({ success: false, error: error.message }));
                 break;
 
@@ -156,19 +156,57 @@ class AspectaBackground {
         }
     }
 
-    async captureScreenshot(tabId) {
+    async captureWebsiteScreenshot(url, width, height, userAgent) {
         try {
-            const tab = await chrome.tabs.get(tabId);
-            const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, {
+            console.log(`Aspecta Background: Capturing screenshot for ${url} at ${width}x${height}`);
+            
+            // Create a temporary tab with specific dimensions
+            const tempWindow = await chrome.windows.create({
+                url: url,
+                type: 'popup',
+                width: width + 20,
+                height: height + 100,
+                left: -9999, // Hide off-screen
+                top: -9999,
+                focused: false
+            });
+
+            // Wait for page to load
+            await new Promise(resolve => {
+                const listener = (tabId, changeInfo) => {
+                    if (changeInfo.status === 'complete' && tabId === tempWindow.tabs[0].id) {
+                        chrome.tabs.onUpdated.removeListener(listener);
+                        resolve();
+                    }
+                };
+                chrome.tabs.onUpdated.addListener(listener);
+                
+                // Fallback timeout
+                setTimeout(resolve, 5000);
+            });
+
+            // Apply user agent if provided
+            if (userAgent) {
+                await this.setUserAgentForTab(tempWindow.tabs[0].id, userAgent);
+                // Reload to apply user agent
+                await chrome.tabs.reload(tempWindow.tabs[0].id);
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+
+            // Capture screenshot
+            const dataUrl = await chrome.tabs.captureVisibleTab(tempWindow.id, {
                 format: 'png',
                 quality: 100
             });
 
+            // Close temporary window
+            await chrome.windows.remove(tempWindow.id);
+
             return dataUrl;
 
         } catch (error) {
-            console.error('Failed to capture screenshot:', error);
-            throw error;
+            console.error('Aspecta Background: Screenshot capture failed:', error);
+            throw new Error(`Screenshot capture failed: ${error.message}`);
         }
     }
 
