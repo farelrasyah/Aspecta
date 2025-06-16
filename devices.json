@@ -1,0 +1,80 @@
+[
+  {
+    "label": "iPhone SE",
+    "width": 375,
+    "height": 667,
+    "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
+  },
+  {
+    "label": "iPhone 12/13/14",
+    "width": 390,
+    "height": 844,
+    "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
+  },
+  {
+    "label": "iPhone 14 Pro",
+    "width": 393,
+    "height": 852,
+    "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
+  },
+  {
+    "label": "iPhone 14 Pro Max",
+    "width": 428,
+    "height": 926,
+    "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
+  },
+  {
+    "label": "Galaxy S22",
+    "width": 360,
+    "height": 780,
+    "userAgent": "Mozilla/5.0 (Linux; Android 12; SM-S906B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Mobile Safari/537.36"
+  },
+  {
+    "label": "Galaxy S22 Ultra",
+    "width": 384,
+    "height": 854,
+    "userAgent": "Mozilla/5.0 (Linux; Android 12; SM-S908B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Mobile Safari/537.36"
+  },
+  {
+    "label": "Pixel 7",
+    "width": 412,
+    "height": 915,
+    "userAgent": "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Mobile Safari/537.36"
+  },
+  {
+    "label": "Pixel 7 Pro",
+    "width": 412,
+    "height": 892,
+    "userAgent": "Mozilla/5.0 (Linux; Android 13; Pixel 7 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Mobile Safari/537.36"
+  },
+  {
+    "label": "iPad Mini",
+    "width": 768,
+    "height": 1024,
+    "userAgent": "Mozilla/5.0 (iPad; CPU OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
+  },
+  {
+    "label": "iPad",
+    "width": 820,
+    "height": 1180,
+    "userAgent": "Mozilla/5.0 (iPad; CPU OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
+  },
+  {
+    "label": "iPad Pro",
+    "width": 1024,
+    "height": 1366,
+    "userAgent": "Mozilla/5.0 (iPad; CPU OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
+  },
+  {
+    "label": "Galaxy Tab S8",
+    "width": 753,
+    "height": 1037,
+    "userAgent": "Mozilla/5.0 (Linux; Android 12; SM-X700) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36"
+  },
+  {
+    "label": "Surface Duo",
+    "width": 540,
+    "height": 720,
+    "userAgent": "Mozilla/5.0 (Linux; Android 11; Surface Duo) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Mobile Safari/537.36"
+  }
+]
