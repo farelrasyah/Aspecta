@@ -133,6 +133,31 @@ Aspecta/
 - Untuk website kompleks, mungkin perlu beberapa kali apply
 - Pastikan website tidak menggunakan iframe yang kompleks
 
+## 🔧 Troubleshooting
+
+Jika Anda mengalami error "failed to apply simulation", ikuti langkah berikut:
+
+### Quick Debug:
+1. **Buka Developer Tools (F12) → Console**
+2. **Cari log "Aspecta: Content script initialized"**
+3. **Cari log "Aspecta Popup: Current tab: [URL]"**
+4. **Screenshot error yang muncul**
+
+### Common Issues:
+- ❌ **Halaman tidak didukung:** Extension tidak bekerja di `chrome://`, `chrome-extension://`, dll
+- ✅ **Solusi:** Buka website normal (google.com, github.com) atau gunakan `test.html`
+
+- ❌ **Content script error:** Extension tidak merespons
+- ✅ **Solusi:** Refresh halaman web, reload extension di chrome://extensions
+
+- ❌ **Permission error:** Window tidak resize
+- ✅ **Solusi:** Pastikan browser tidak fullscreen, disable zoom (100%)
+
+### Test File:
+Gunakan file `test.html` untuk testing awal - file ini dibuat khusus untuk memverifikasi extension bekerja dengan benar.
+
+**Lihat file `TROUBLESHOOTING.md` untuk panduan lengkap debugging.**
+
 ## 🤝 Kontribusi
 
 Kontribusi sangat diterima! Silakan:

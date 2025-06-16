@@ -5,25 +5,55 @@ class AspectaPopup {
         this.customPresets = [];
         this.currentTab = null;
         this.init();
-    }
-
-    async init() {
-        await this.loadDevices();
-        await this.loadCustomPresets();
-        await this.getCurrentTab();
-        this.setupEventListeners();
-        this.populateDeviceSelect();
-        this.renderCustomPresets();
-        this.updateCurrentInfo();
-    }
-
-    async loadDevices() {
+    }    async init() {
+        console.log('Aspecta Popup: Initializing...');
+        
         try {
-            const response = await fetch('devices.json');
-            this.devices = await response.json();
+            await this.loadDevices();
+            await this.loadCustomPresets();
+            await this.getCurrentTab();
+            this.setupEventListeners();
+            this.populateDeviceSelect();
+            this.renderCustomPresets();
+            this.updateCurrentInfo();
+            
+            console.log('Aspecta Popup: Initialized successfully');
+            this.setStatus('Ready', 'ready');
         } catch (error) {
-            console.error('Failed to load devices:', error);
+            console.error('Aspecta Popup: Initialization failed:', error);
+            this.setStatus('Initialization failed', 'error');
+        }
+    }    async loadDevices() {
+        try {
+            console.log('Aspecta Popup: Loading devices...');
+            const response = await fetch('devices.json');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            this.devices = await response.json();
+            console.log('Aspecta Popup: Loaded', this.devices.length, 'devices');
+        } catch (error) {
+            console.error('Aspecta Popup: Failed to load devices:', error);
             this.devices = [];
+            
+            // Fallback devices if file loading fails
+            this.devices = [
+                {
+                    label: "iPhone SE",
+                    width: 375,
+                    height: 667,
+                    userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
+                },
+                {
+                    label: "Galaxy S22",
+                    width: 360,
+                    height: 780,
+                    userAgent: "Mozilla/5.0 (Linux; Android 12; SM-S906B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Mobile Safari/537.36"
+                }
+            ];
+            console.log('Aspecta Popup: Using fallback devices');
         }
     }
 
@@ -43,14 +73,17 @@ class AspectaPopup {
         } catch (error) {
             console.error('Failed to save custom presets:', error);
         }
-    }
-
-    async getCurrentTab() {
+    }    async getCurrentTab() {
         try {
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
             this.currentTab = tab;
+            console.log('Aspecta Popup: Current tab:', tab?.url);
+            
+            if (!tab) {
+                console.warn('Aspecta Popup: No active tab found');
+            }
         } catch (error) {
-            console.error('Failed to get current tab:', error);
+            console.error('Aspecta Popup: Failed to get current tab:', error);
         }
     }
 
@@ -146,9 +179,7 @@ class AspectaPopup {
             }
             this.updateCurrentInfo();
         }
-    }
-
-    async applySimulation() {
+    }    async applySimulation() {
         const widthInput = document.getElementById('widthInput');
         const heightInput = document.getElementById('heightInput');
         const userAgentToggle = document.getElementById('userAgentToggle');
@@ -165,6 +196,23 @@ class AspectaPopup {
         this.setButtonsDisabled(true);
 
         try {
+            // Ensure we have current tab
+            if (!this.currentTab) {
+                await this.getCurrentTab();
+            }
+
+            if (!this.currentTab) {
+                throw new Error('No active tab found');
+            }
+
+            // Check if tab URL is supported
+            if (this.currentTab.url.startsWith('chrome://') || 
+                this.currentTab.url.startsWith('chrome-extension://') ||
+                this.currentTab.url.startsWith('edge://') ||
+                this.currentTab.url.startsWith('about:')) {
+                throw new Error('Cannot simulate on browser internal pages');
+            }
+
             // Get current window
             const currentWindow = await chrome.windows.getCurrent();
             
@@ -172,11 +220,14 @@ class AspectaPopup {
             const windowWidth = width + 20; // Add some padding for browser chrome
             const windowHeight = height + 120; // Add space for address bar, tabs, etc.
 
-            // Update window size
+            // Update window size first
             await chrome.windows.update(currentWindow.id, {
                 width: windowWidth,
                 height: windowHeight
             });
+
+            // Wait a bit for window resize to complete
+            await new Promise(resolve => setTimeout(resolve, 100));
 
             // Send message to content script to update viewport and user agent
             const deviceSelect = document.getElementById('deviceSelect');
@@ -192,13 +243,22 @@ class AspectaPopup {
                 }
             }
 
-            if (this.currentTab) {
-                await chrome.tabs.sendMessage(this.currentTab.id, {
+            // Try to send message to content script with timeout
+            try {
+                const response = await this.sendMessageWithTimeout(this.currentTab.id, {
                     action: 'simulateDevice',
                     width: width,
                     height: height,
                     userAgent: userAgent
-                });
+                }, 5000);
+
+                if (!response || !response.success) {
+                    console.warn('Content script not responding, using fallback method');
+                    // Fallback: just resize window
+                }
+            } catch (contentError) {
+                console.warn('Content script communication failed:', contentError);
+                // Continue anyway - window resize should still work
             }
 
             this.setStatus('Simulation applied successfully!', 'ready');
@@ -206,21 +266,62 @@ class AspectaPopup {
             
         } catch (error) {
             console.error('Failed to apply simulation:', error);
-            this.setStatus('Failed to apply simulation', 'error');
+            let errorMessage = 'Failed to apply simulation';
+            
+            if (error.message.includes('browser internal pages')) {
+                errorMessage = 'Cannot simulate on browser internal pages';
+            } else if (error.message.includes('No active tab')) {
+                errorMessage = 'No active tab found';
+            } else if (error.message.includes('Extension context invalidated')) {
+                errorMessage = 'Extension needs to be reloaded';
+            }
+            
+            this.setStatus(errorMessage, 'error');
         } finally {
             this.setButtonsDisabled(false);
         }
     }
 
-    async resetSimulation() {
+    // Helper method to send message with timeout
+    sendMessageWithTimeout(tabId, message, timeout = 5000) {
+        return new Promise((resolve, reject) => {
+            const timer = setTimeout(() => {
+                reject(new Error('Message timeout'));
+            }, timeout);
+
+            chrome.tabs.sendMessage(tabId, message, (response) => {
+                clearTimeout(timer);
+                if (chrome.runtime.lastError) {
+                    reject(new Error(chrome.runtime.lastError.message));
+                } else {
+                    resolve(response);
+                }
+            });
+        });
+    }    async resetSimulation() {
         this.setStatus('Resetting...', 'applying');
         this.setButtonsDisabled(true);
 
         try {
-            if (this.currentTab) {
-                await chrome.tabs.sendMessage(this.currentTab.id, {
-                    action: 'resetSimulation'
-                });
+            // Ensure we have current tab
+            if (!this.currentTab) {
+                await this.getCurrentTab();
+            }
+
+            if (this.currentTab && 
+                !this.currentTab.url.startsWith('chrome://') && 
+                !this.currentTab.url.startsWith('chrome-extension://') &&
+                !this.currentTab.url.startsWith('edge://') &&
+                !this.currentTab.url.startsWith('about:')) {
+                
+                try {
+                    const response = await this.sendMessageWithTimeout(this.currentTab.id, {
+                        action: 'resetSimulation'
+                    }, 3000);
+                } catch (contentError) {
+                    console.warn('Content script communication failed during reset:', contentError);
+                    // Continue anyway
+                }
             }
 
             // Reset form

@@ -8,9 +8,13 @@ class AspectaContentScript {
         };
         this.isSimulating = false;
         this.init();
-    }
+    }    init() {
+        // Check if we're on a supported page
+        if (this.isUnsupportedPage()) {
+            console.log('Aspecta: Content script loaded on unsupported page');
+            return;
+        }
 
-    init() {
         // Listen for messages from popup
         chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             this.handleMessage(message, sender, sendResponse);
@@ -22,37 +26,64 @@ class AspectaContentScript {
         
         // Add custom styles for better mobile simulation
         this.addSimulationStyles();
+        
+        console.log('Aspecta: Content script initialized');
+    }
+
+    isUnsupportedPage() {
+        const url = window.location.href;
+        return url.startsWith('chrome://') || 
+               url.startsWith('chrome-extension://') ||
+               url.startsWith('edge://') ||
+               url.startsWith('about:') ||
+               url.startsWith('moz-extension://');
     }
 
     handleMessage(message, sender, sendResponse) {
-        switch (message.action) {
-            case 'simulateDevice':
-                this.simulateDevice(message.width, message.height, message.userAgent)
-                    .then(() => sendResponse({ success: true }))
-                    .catch(error => sendResponse({ success: false, error: error.message }));
-                break;
-                
-            case 'resetSimulation':
-                this.resetSimulation()
-                    .then(() => sendResponse({ success: true }))
-                    .catch(error => sendResponse({ success: false, error: error.message }));
-                break;
-                
-            case 'getCurrentDimensions':
-                sendResponse({
-                    width: window.innerWidth,
-                    height: window.innerHeight,
-                    isSimulating: this.isSimulating
-                });
-                break;
-                
-            default:
-                sendResponse({ success: false, error: 'Unknown action' });
-        }
-    }
-
-    async simulateDevice(width, height, userAgent) {
         try {
+            if (this.isUnsupportedPage()) {
+                sendResponse({ success: false, error: 'Unsupported page' });
+                return;
+            }
+
+            switch (message.action) {
+                case 'simulateDevice':
+                    this.simulateDevice(message.width, message.height, message.userAgent)
+                        .then(() => sendResponse({ success: true }))
+                        .catch(error => {
+                            console.error('Simulate device error:', error);
+                            sendResponse({ success: false, error: error.message });
+                        });
+                    break;
+                    
+                case 'resetSimulation':
+                    this.resetSimulation()
+                        .then(() => sendResponse({ success: true }))
+                        .catch(error => {
+                            console.error('Reset simulation error:', error);
+                            sendResponse({ success: false, error: error.message });
+                        });
+                    break;
+                    
+                case 'getCurrentDimensions':
+                    sendResponse({
+                        success: true,
+                        width: window.innerWidth,
+                        height: window.innerHeight,
+                        isSimulating: this.isSimulating
+                    });
+                    break;
+                    
+                default:
+                    sendResponse({ success: false, error: 'Unknown action' });
+            }
+        } catch (error) {
+            console.error('Content script message handling error:', error);
+            sendResponse({ success: false, error: error.message });
+        }
+    }    async simulateDevice(width, height, userAgent) {
+        try {
+            console.log(`Aspecta: Starting simulation ${width}×${height}`);
             this.isSimulating = true;
             
             // Apply viewport simulation
@@ -69,9 +100,10 @@ class AspectaContentScript {
             // Add visual indicator
             this.showSimulationIndicator(width, height);
             
-            console.log(`Aspecta: Simulating ${width}×${height} viewport`);
+            console.log(`Aspecta: Simulation applied successfully ${width}×${height}`);
             
         } catch (error) {
+            console.error('Aspecta: Simulation failed:', error);
             this.isSimulating = false;
             throw error;
         }
