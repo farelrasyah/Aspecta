@@ -247,11 +247,11 @@ class AspectaPopup {
                 }
             }
 
-            // Create simulator window and show preview
-            await this.createSimulatorWindow(width, height, deviceInfo, userAgent);
+            // Use responsive window approach instead of iframe
+            await this.createResponsiveWindow(width, height, deviceInfo, userAgent);
             this.showDeviceSimulator(width, height, deviceSelect.value);
 
-            this.setStatus('Device simulator opened! Screenshot will load automatically.', 'ready');
+            this.setStatus('Device simulator opened! Website loading in responsive window.', 'ready');
             this.updateCurrentInfo();
             
         } catch (error) {
@@ -496,24 +496,25 @@ class AspectaPopup {
         loadingOverlay.classList.remove('hidden');
         loadingOverlay.innerHTML = `
             <div class="loading-spinner"></div>
-            <p>Capturing website screenshot...</p>
+            <p>Loading live website...</p>
             <div style="font-size: 12px; color: #6b7280; margin-top: 8px;">
-                Please wait while we capture the current website
+                Please wait while we load the interactive website
             </div>
         `;
 
         try {
             if (this.currentTab && this.currentTab.url) {
-                // Check if URL is accessible
+                // Check if URL is accessible for iframe
                 if (this.currentTab.url.startsWith('chrome://') || 
                     this.currentTab.url.startsWith('chrome-extension://') ||
                     this.currentTab.url.startsWith('edge://') ||
                     this.currentTab.url.startsWith('about:')) {
-                      // Show message for unsupported URLs
+                    
+                    // Show message for unsupported URLs
                     loadingOverlay.innerHTML = `
                         <div style="text-align: center; color: #ef4444;">
                             <div style="font-size: 24px; margin-bottom: 12px;">⚠️</div>
-                            <p><strong>Cannot Preview System Pages</strong></p>
+                            <p><strong>Cannot Load System Pages</strong></p>
                             <p style="font-size: 12px; margin-top: 8px;">
                                 Please navigate to a regular website to test responsiveness.
                             </p>
@@ -526,39 +527,83 @@ class AspectaPopup {
                     return;
                 }
 
-                // Hide iframe and capture screenshot instead
-                iframe.style.display = 'none';
+                // Show iframe and load website directly
+                iframe.style.display = 'block';
+                console.log('Loading live website in iframe:', this.currentTab.url);
                 
-                // Request screenshot from background script
-                console.log('Requesting screenshot for:', this.currentTab.url);
+                // Set user agent if needed
+                const userAgent = this.getUserAgentFromDevice();
+                if (userAgent) {
+                    console.log('Setting user agent for iframe:', userAgent);
+                    // Note: User agent changes would need to be applied to the simulator window
+                }
                 
-                chrome.runtime.sendMessage({
-                    action: 'captureScreenshot',
-                    url: this.currentTab.url,
-                    width: parseInt(document.getElementById('widthInput').value),
-                    height: parseInt(document.getElementById('heightInput').value),
-                    userAgent: this.getUserAgentFromDevice()
-                }, (response) => {
-                    if (response && response.success) {
-                        // Show screenshot in iframe alternative
-                        iframe.style.display = 'none';
+                // Load website directly in iframe
+                iframe.src = this.currentTab.url;
+                
+                // Handle iframe load events
+                const handleIframeLoad = () => {
+                    console.log('Iframe loaded successfully');
+                    setTimeout(() => {
+                        loadingOverlay.classList.add('hidden');
+                    }, 500);
+                    iframe.removeEventListener('load', handleIframeLoad);
+                };
+                
+                const handleIframeError = () => {
+                    console.warn('Iframe failed to load, might be due to X-Frame-Options');
+                    loadingOverlay.innerHTML = `
+                        <div style="text-align: center; color: #ef4444;">
+                            <div style="font-size: 24px; margin-bottom: 12px;">🔒</div>
+                            <p><strong>Website Blocked Iframe Loading</strong></p>
+                            <p style="font-size: 12px; margin-top: 8px;">
+                                This website doesn't allow iframe embedding.<br>
+                                Click the button below to open in a new window.
+                            </p>
+                            <button onclick="window.open('${this.currentTab.url}', '_blank', 'width=${parseInt(document.getElementById('widthInput').value)},height=${parseInt(document.getElementById('heightInput').value)}')" 
+                                    style="margin-top: 10px; padding: 6px 12px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                Open in New Window
+                            </button>
+                        </div>
+                    `;
+                    iframe.removeEventListener('error', handleIframeError);
+                };
+                
+                iframe.addEventListener('load', handleIframeLoad);
+                iframe.addEventListener('error', handleIframeError);
+                
+                // Fallback timeout in case iframe gets stuck
+                setTimeout(() => {
+                    if (!loadingOverlay.classList.contains('hidden')) {
+                        console.warn('Iframe loading timeout, checking if content loaded');
+                        
+                        try {
+                            // Try to detect if iframe has content
+                            if (iframe.contentDocument || iframe.contentWindow) {
+                                console.log('Iframe has content, hiding loading overlay');
+                                loadingOverlay.classList.add('hidden');
+                            } else {                        // Show fallback option
                         loadingOverlay.innerHTML = `
-                            <img src="${response.dataUrl}" style="width: 100%; height: 100%; object-fit: contain; background: white;">
-                        `;
-                    } else {
-                        // Show error message
-                        loadingOverlay.innerHTML = `
-                            <div style="text-align: center; color: #ef4444;">
-                                <div style="font-size: 24px; margin-bottom: 12px;">❌</div>
-                                <p><strong>Screenshot Failed</strong></p>
+                            <div style="text-align: center; color: #f59e0b;">
+                                <div style="font-size: 24px; margin-bottom: 12px;">⏱️</div>
+                                <p><strong>Website Loading</strong></p>
                                 <p style="font-size: 12px; margin-top: 8px;">
-                                    ${response?.error || 'Unable to capture website'}
+                                    The website is loading in the iframe.<br>
+                                    This is normal for live interactive preview.
                                 </p>
-                                <button onclick="location.reload()" style="margin-top: 10px; padding: 4px 8px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">Retry</button>
+                                <button onclick="window.open('${this.currentTab.url}', '_blank', 'width=${parseInt(document.getElementById('widthInput').value)},height=${parseInt(document.getElementById('heightInput').value)}')" 
+                                        style="margin-top: 10px; padding: 6px 12px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                    Open in New Window
+                                </button>
                             </div>
                         `;
+                            }
+                        } catch (e) {
+                            console.warn('Cannot access iframe content due to cross-origin restrictions');
+                            loadingOverlay.classList.add('hidden'); // Assume it loaded
+                        }
                     }
-                });
+                }, 10000); // 10 second timeout
                 
             } else {
                 loadingOverlay.innerHTML = `
@@ -753,6 +798,118 @@ class AspectaPopup {
             </div>
         `;
         loadingOverlay.classList.remove('hidden');
+    }    async createResponsiveWindow(width, height, deviceInfo, userAgent) {
+        try {
+            console.log('Aspecta: Creating responsive window for', deviceInfo.label);
+            console.log('Aspecta: Current tab URL:', this.currentTab?.url);
+            console.log('Aspecta: Dimensions:', width, 'x', height);
+            console.log('Aspecta: User Agent:', userAgent);
+            
+            // Validate current tab URL
+            if (!this.currentTab.url || this.currentTab.url.startsWith('chrome://')) {
+                throw new Error('Cannot simulate chrome:// or system pages. Please navigate to a regular website.');
+            }
+            
+            // Create a new window with the exact dimensions needed
+            const newWindow = await chrome.windows.create({
+                url: this.currentTab.url,
+                type: 'popup',
+                width: width + 20,  // Add small padding for scrollbars
+                height: height + 60, // Add padding for browser chrome
+                left: 100,
+                top: 100,
+                focused: true
+            });
+
+            console.log('Aspecta: Responsive window created with ID:', newWindow.id);
+            
+            // Store window ID for later reference
+            this.simulatorWindowId = newWindow.id;
+            
+            // Apply user agent if specified
+            if (userAgent && userAgent.trim() && newWindow.tabs && newWindow.tabs[0]) {
+                console.log('Aspecta: Applying user agent to new window...');
+                
+                try {
+                    // Send message to background to set user agent
+                    await chrome.runtime.sendMessage({
+                        action: 'setUserAgent',
+                        tabId: newWindow.tabs[0].id,
+                        userAgent: userAgent
+                    });
+                    
+                    console.log('Aspecta: User agent applied successfully');
+                    
+                    // Reload the tab to apply user agent
+                    setTimeout(async () => {
+                        try {
+                            await chrome.tabs.reload(newWindow.tabs[0].id);
+                            console.log('Aspecta: Tab reloaded with new user agent');
+                        } catch (error) {
+                            console.warn('Aspecta: Failed to reload tab:', error);
+                        }
+                    }, 500);
+                    
+                } catch (error) {
+                    console.warn('Aspecta: Failed to set user agent:', error);
+                }
+            }
+            
+            // Inject responsive viewport meta tag for better mobile rendering
+            if (newWindow.tabs && newWindow.tabs[0]) {
+                setTimeout(async () => {
+                    try {
+                        await chrome.tabs.executeScript(newWindow.tabs[0].id, {
+                            code: `
+                                // Add or update viewport meta tag for responsive design
+                                let viewport = document.querySelector('meta[name="viewport"]');
+                                if (!viewport) {
+                                    viewport = document.createElement('meta');
+                                    viewport.name = 'viewport';
+                                    document.head.appendChild(viewport);
+                                }
+                                viewport.content = 'width=device-width, initial-scale=1.0, user-scalable=yes';
+                                
+                                // Add device simulation indicator
+                                const indicator = document.createElement('div');
+                                indicator.style.cssText = \`
+                                    position: fixed; 
+                                    top: 0; 
+                                    left: 0; 
+                                    background: rgba(33, 150, 243, 0.9); 
+                                    color: white; 
+                                    padding: 8px 12px; 
+                                    font: 12px Arial; 
+                                    z-index: 999999; 
+                                    border-radius: 0 0 8px 0;
+                                    pointer-events: none;
+                                \`;
+                                indicator.textContent = '📱 ${deviceInfo.label} (${width}×${height})';
+                                document.body.appendChild(indicator);
+                                
+                                // Auto-hide indicator after 3 seconds
+                                setTimeout(() => {
+                                    if (indicator.parentNode) {
+                                        indicator.style.opacity = '0';
+                                        indicator.style.transition = 'opacity 0.5s';
+                                        setTimeout(() => indicator.remove(), 500);
+                                    }
+                                }, 3000);
+                                
+                                console.log('Aspecta: Device simulation active - ${deviceInfo.label}');
+                            `
+                        });
+                        console.log('Aspecta: Responsive viewport and indicator injected');
+                    } catch (error) {
+                        console.warn('Aspecta: Failed to inject responsive code:', error);
+                    }
+                }, 2000); // Wait 2 seconds for page to load
+            }
+            
+        } catch (error) {
+            console.error('Failed to create responsive window:', error);
+            throw error;
+        }
     }
 
     // ...existing code...

@@ -198,11 +198,10 @@
                     </div>
                     <div id="stepIndicator" class="step-indicator">Setting up device...</div>
                 </div>
-                <div class="url-display" id="urlDisplay" style="display: none;"></div>
-                <div class="instructions" id="instructions" style="display: none;">
-                    Click "📸" to capture website screenshot<br>
-                    Click "🔗" to open original site<br>
-                    Click "🔄" to refresh preview
+                <div class="url-display" id="urlDisplay" style="display: none;"></div>                <div class="instructions" id="instructions" style="display: none;">
+                    � <strong>Live Interactive Website</strong><br>
+                    You can scroll, click, and interact with the website normally.<br>
+                    This is a live iframe, not a static image.
                 </div>
                 <img id="screenshotPreview" class="screenshot-preview" />
                 <div id="errorMessage" class="error-message" style="display: none;"></div>
@@ -233,7 +232,7 @@
             
             // Progress tracking
             let currentStep = 0;
-            const totalSteps = 5;
+            const totalSteps = 4;
             
             function updateProgress(step, message) {
                 currentStep = step;
@@ -272,69 +271,91 @@
             const container = document.getElementById('simulatorContainer');
             container.className = `simulator-container ${config.deviceType}`;
             
-            // Step 3: Check Extension API
-            updateProgress(3, 'Checking extension API...');
+            // Step 3: Setup live iframe
+            updateProgress(3, 'Setting up live preview...');
             
-            if (!chrome || !chrome.runtime) {
-                showError('Extension API not available. Try reloading the extension.');
-                return;
-            }
+            // Create iframe for live website
+            const screenContent = document.getElementById('screenContent');
+            const iframe = document.createElement('iframe');
+            iframe.id = 'liveIframe';
+            iframe.style.cssText = `
+                width: 100%;
+                height: 100%;
+                border: none;
+                background: white;
+                display: block;
+            `;
+            iframe.src = 'about:blank'; // Start with blank
             
-            console.log('Aspecta Simulator: Chrome API available, testing connection...');
-              // Step 4: Test communication with timeout
-            updateProgress(4, 'Testing connection...');
+            // Step 4: Load website
+            updateProgress(4, 'Loading live website...');
             
-            // Create timeout for ping test
-            const pingTimeout = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('Extension ping timeout')), 3000);
-            });
-            
-            const pingTest = new Promise((resolve, reject) => {
-                chrome.runtime.sendMessage({action: 'ping'}, (response) => {
-                    if (chrome.runtime.lastError) {
-                        reject(new Error('Extension communication failed: ' + chrome.runtime.lastError.message));
-                        return;
-                    }
+            try {
+                // Check if URL is valid for iframe
+                if (!config.targetUrl || 
+                    config.targetUrl.startsWith('chrome://') || 
+                    config.targetUrl.startsWith('about:') ||
+                    config.targetUrl.startsWith('chrome-extension://')) {
+                    throw new Error('Cannot load system pages in iframe');
+                }
+                
+                // Set up iframe loading handlers
+                iframe.onload = () => {
+                    console.log('Aspecta Simulator: Website loaded successfully in iframe');
                     
-                    console.log('Aspecta Simulator: Extension communication OK');
-                    resolve(response);
-                });
-            });
-              try {
-                await Promise.race([pingTest, pingTimeout]);
-                
-                // Step 5: Ready for action
-                updateProgress(5, 'Ready!');
-                
-                // Show final state
-                setTimeout(() => {
-                    document.getElementById('loadingMessage').textContent = '🚀 Simulator Ready! Capturing website...';
+                    // Hide loading and show iframe
+                    const loadingElements = document.querySelectorAll('.loading-spinner, #loadingMessage, .progress-container');
+                    loadingElements.forEach(el => el.style.display = 'none');
+                    
                     document.getElementById('instructions').style.display = 'block';
                     
-                    // Start auto-capture with a small delay for better reliability
-                    console.log('Aspecta Simulator: Starting auto-capture...');
-                    setTimeout(() => {
-                        captureScreenshot();
-                    }, 500);
-                }, 100);
+                    // Set iframe to full size
+                    iframe.style.display = 'block';
+                };
+                
+                iframe.onerror = () => {
+                    console.warn('Aspecta Simulator: Iframe failed to load');
+                    showError('Website may block iframe loading. Try opening in a new window.');
+                };
+                
+                // Add iframe to screen
+                screenContent.appendChild(iframe);
+                
+                // Load the website
+                console.log('Aspecta Simulator: Loading website:', config.targetUrl);
+                iframe.src = config.targetUrl;
+                
+                // Fallback timeout
+                setTimeout(() => {
+                    const loadingMsg = document.getElementById('loadingMessage');
+                    if (loadingMsg && loadingMsg.style.display !== 'none') {
+                        console.log('Aspecta Simulator: Loading timeout, checking iframe status...');
+                        
+                        try {
+                            // Check if iframe loaded content
+                            if (iframe.contentDocument || iframe.contentWindow) {
+                                // Hide loading
+                                const loadingElements = document.querySelectorAll('.loading-spinner, #loadingMessage, .progress-container');
+                                loadingElements.forEach(el => el.style.display = 'none');
+                                document.getElementById('instructions').style.display = 'block';
+                            } else {
+                                showError('Website is taking longer to load or may not support iframe embedding.');
+                            }
+                        } catch (e) {
+                            // Cross-origin restriction, assume it loaded
+                            console.log('Aspecta Simulator: Cross-origin detected, assuming loaded');
+                            const loadingElements = document.querySelectorAll('.loading-spinner, #loadingMessage, .progress-container');
+                            loadingElements.forEach(el => el.style.display = 'none');
+                            document.getElementById('instructions').style.display = 'block';
+                        }
+                    }
+                }, 8000); // 8 second timeout
                 
             } catch (error) {
-                console.error('Aspecta Simulator: Ping test failed:', error);
-                
-                // Try to continue anyway, show manual controls with auto-retry
-                updateProgress(5, 'Retrying connection...');
-                
-                document.getElementById('loadingMessage').textContent = '🔄 Retrying connection... Auto-capturing in 3 seconds';
-                document.getElementById('instructions').style.display = 'block';
-                
-                // Auto-retry after delay
-                setTimeout(() => {
-                    console.log('Aspecta Simulator: Auto-retry capture...');
-                    captureScreenshot();
-                }, 3000);
+                console.error('Aspecta Simulator: Failed to load website:', error);
+                showError(error.message);
             }
-            
-            console.log('Aspecta Simulator: Initialization complete');
+              console.log('Aspecta Simulator: Initialization complete');
         }
         
         function showError(message) {
@@ -346,120 +367,18 @@
         
         function hideError() {
             document.getElementById('errorMessage').style.display = 'none';
-        }        async function captureScreenshot() {
-            try {
-                console.log('Aspecta Simulator: Starting screenshot capture...');
-                hideError();
-                
-                const loadingMsg = document.getElementById('loadingMessage');
-                const progressFill = document.getElementById('progressFill');
-                const stepIndicator = document.getElementById('stepIndicator');
-                
-                // Update UI for screenshot process
-                loadingMsg.textContent = '📸 Capturing screenshot...';
-                loadingMsg.style.display = 'block';
-                
-                // Show progress for screenshot capture
-                function updateCaptureProgress(step, total, message) {
-                    const percentage = (step / total) * 100;
-                    if (progressFill) progressFill.style.width = percentage + '%';
-                    if (stepIndicator) stepIndicator.textContent = message;
-                }
-                
-                updateCaptureProgress(1, 4, 'Preparing capture...');
-                
-                // Check if Chrome extension API is available
-                if (!chrome || !chrome.runtime) {
-                    throw new Error('Chrome Extension API not available. Try reloading the extension.');
-                }
-                
-                updateCaptureProgress(2, 4, 'Validating URL...');
-                
-                // Validate target URL
-                if (!simulatorConfig.targetUrl || simulatorConfig.targetUrl === 'undefined') {
-                    throw new Error('No target URL provided');
-                }
-                
-                console.log('Aspecta Simulator: Requesting screenshot for', simulatorConfig.targetUrl);
-                
-                updateCaptureProgress(3, 4, 'Capturing screenshot...');
-                  // Create timeout promise (increased to 15 seconds for better reliability)
-                const timeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error('Screenshot capture timeout (15s)')), 15000);
-                });
-                
-                // Create screenshot request promise
-                const screenshotPromise = new Promise((resolve, reject) => {
-                    chrome.runtime.sendMessage({
-                        action: 'captureScreenshot',
-                        url: simulatorConfig.targetUrl,
-                        width: simulatorConfig.width,
-                        height: simulatorConfig.height,
-                        userAgent: simulatorConfig.userAgent
-                    }, (response) => {
-                        if (chrome.runtime.lastError) {
-                            reject(new Error('Extension communication error: ' + chrome.runtime.lastError.message));
-                            return;
-                        }
-                        
-                        if (response && response.success) {
-                            resolve(response);
-                        } else {
-                            reject(new Error('Screenshot failed: ' + (response?.error || 'Unknown error')));
-                        }
-                    });
-                });
-                
-                // Race between screenshot and timeout
-                const response = await Promise.race([screenshotPromise, timeoutPromise]);
-                
-                updateCaptureProgress(4, 4, 'Complete!');
-                
-                console.log('Aspecta Simulator: Screenshot captured successfully');
-                const img = document.getElementById('screenshotPreview');
-                img.src = response.dataUrl;
-                img.style.display = 'block';
-                
-                // Hide loading elements
-                loadingMsg.style.display = 'none';
-                if (progressFill) progressFill.style.width = '0%';
-                if (stepIndicator) stepIndicator.textContent = '';
-                
-            } catch (error) {
-                console.error('Aspecta Simulator: Screenshot error:', error);
-                
-                // Show user-friendly error message with fallback options
-                let errorMsg = error.message;
-                if (error.message.includes('timeout')) {
-                    errorMsg = 'Screenshot taking longer than expected. Click 📸 to retry or 🔗 to open original.';
-                } else if (error.message.includes('Extension API')) {
-                    errorMsg = 'Extension API issue. Try reloading the extension.';
-                } else if (error.message.includes('No target URL')) {
-                    errorMsg = 'Invalid website URL. Try opening a different website.';
-                } else if (error.message.includes('communication error')) {
-                    errorMsg = 'Connection to extension failed. Check extension status.';
-                }
-                
-                showError(errorMsg);
-                
-                // Show fallback message
-                const loadingMsg = document.getElementById('loadingMessage');
-                loadingMsg.textContent = '⚠️ Auto-capture failed. Click 📸 to retry manually.';
-                loadingMsg.style.display = 'block';
-                
-                // Reset progress indicators
-                const progressFill = document.getElementById('progressFill');
-                const stepIndicator = document.getElementById('stepIndicator');
-                if (progressFill) progressFill.style.width = '0%';
-                if (stepIndicator) stepIndicator.textContent = 'Click 📸 to retry';
-            }
         }
         
         function refreshContent() {
-            document.getElementById('screenshotPreview').style.display = 'none';
-            const loadingMsg = document.getElementById('loadingMessage');
-            loadingMsg.style.display = 'block';
-            loadingMsg.textContent = '🔄 Ready to capture';
+            const iframe = document.getElementById('liveIframe');
+            if (iframe) {
+                console.log('Refreshing iframe content...');
+                const currentSrc = iframe.src;
+                iframe.src = 'about:blank';
+                setTimeout(() => {
+                    iframe.src = currentSrc;
+                }, 100);
+            }
             hideError();
         }
         
@@ -469,7 +388,16 @@
             }
         }
         
-        // Initialize when page loads
+        function captureScreenshot() {
+            // For live iframe, we'll use the browser's native screenshot function
+            // This is a simplified version - in reality, you might want to capture the iframe content
+            if (navigator.clipboard && navigator.clipboard.write) {
+                console.log('Screenshot feature for live iframe - opening original in new tab for now');
+                openOriginal();
+            } else {
+                alert('Screenshot of live iframe coming soon! For now, you can manually take a screenshot.');
+            }
+        }        // Initialize when page loads
         document.addEventListener('DOMContentLoaded', initSimulator);
     </script>
 </body>

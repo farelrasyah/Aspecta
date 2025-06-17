@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Aspecta",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Mobile Simulator untuk responsive testing dengan mudah",  "permissions": [
     "activeTab",
     "tabs",
