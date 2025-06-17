@@ -111,8 +111,11 @@
                         <button id="fullscreenBtn" class="btn-icon-small" title="Open in new window">🔍</button>
                         <button id="closeSimulatorBtn" class="btn-icon-small" title="Close preview">✕</button>
                     </div>
-                </div>
-                <div class="device-frame" id="deviceFrame">
+                </div>                <div class="device-frame" id="deviceFrame" tabindex="0" aria-label="Device simulator frame">
+                    <div class="device-frame-tooltip" id="deviceTooltip">Device Frame</div>
+                    <div class="device-frame-status" id="deviceStatus">
+                        <div class="status-indicator loading" id="statusIndicator"></div>
+                    </div>
                     <div class="device-screen" id="deviceScreen">
                         <iframe id="simulatorIframe" src="" frameborder="0"></iframe>
                         <div class="loading-overlay" id="loadingOverlay">

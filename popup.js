@@ -103,11 +103,11 @@ class AspectaPopup {
         // Device select change
         document.getElementById('deviceSelect').addEventListener('change', (e) => {
             this.onDeviceSelect(e.target.value);
-        });
-
-        // Landscape toggle
+        });        // Landscape toggle with real-time updates
         document.getElementById('landscapeToggle').addEventListener('change', (e) => {
             this.onOrientationToggle(e.target.checked);
+            // Update simulator if active
+            this.updateSimulatorIfActive();
         });
 
         // Apply button
@@ -438,9 +438,7 @@ class AspectaPopup {
         buttons.forEach(id => {
             document.getElementById(id).disabled = disabled;
         });
-    }
-
-    showDeviceSimulator(width, height, deviceValue) {
+    }    showDeviceSimulator(width, height, deviceValue) {
         console.log('Aspecta Popup: Showing device simulator', width, height);
         
         // Parse device info
@@ -465,30 +463,65 @@ class AspectaPopup {
         document.getElementById('deviceLabel').textContent = deviceInfo.label;
         document.getElementById('deviceDimensions').textContent = `${width}×${height}`;
 
-        // Set device frame style based on device type
+        // Get device frame type using enhanced detection
+        const deviceFrameInfo = this.getDeviceFrameType(deviceInfo.label);
+        
+        // Set device frame style
         const deviceFrame = document.getElementById('deviceFrame');
         deviceFrame.className = 'device-frame';
+          // Add frame class based on device type detection
+        deviceFrame.classList.add(deviceFrameInfo.type);
         
-        if (deviceInfo.label.toLowerCase().includes('iphone') || deviceInfo.label.toLowerCase().includes('ios')) {
-            deviceFrame.classList.add('iphone');
-        } else if (deviceInfo.label.toLowerCase().includes('galaxy') || deviceInfo.label.toLowerCase().includes('pixel') || deviceInfo.label.toLowerCase().includes('android')) {
-            deviceFrame.classList.add('android');
-        } else if (deviceInfo.label.toLowerCase().includes('ipad') || width > 600) {
-            deviceFrame.classList.add('tablet');
-        }
-
-        // Set screen orientation
+        // Update tooltip
+        const tooltip = document.getElementById('deviceTooltip');
+        tooltip.textContent = `${deviceFrameInfo.displayName} - Interactive Preview`;
+        
+        // Set aria-label for accessibility
+        deviceFrame.setAttribute('aria-label', `${deviceFrameInfo.displayName} simulator showing ${deviceInfo.label}`);
+        
+        // Update status indicator
+        const statusIndicator = document.getElementById('statusIndicator');
+        statusIndicator.className = 'status-indicator loading';
+        
+        // Check for dimension-based overrides
+        if (width >= 1200) {
+            deviceFrame.className = 'device-frame desktop';
+            deviceFrameInfo.type = 'desktop';
+            deviceFrameInfo.displayName = '🖥️ Desktop';
+        } else if (width > 600 && width < 1200 && !deviceInfo.label.toLowerCase().includes('iphone') 
+                   && !deviceInfo.label.toLowerCase().includes('galaxy') 
+                   && !deviceInfo.label.toLowerCase().includes('pixel')) {
+            deviceFrame.className = 'device-frame tablet';
+            deviceFrameInfo.type = 'tablet';
+            deviceFrameInfo.displayName = '📱 Tablet';
+        }        // Set screen orientation with enhanced handling
         const deviceScreen = document.getElementById('deviceScreen');
         const isLandscape = document.getElementById('landscapeToggle').checked;
+        
+        // Remove existing orientation classes
+        deviceScreen.classList.remove('landscape');
+        deviceFrame.classList.remove('landscape-mode');
+        
         if (isLandscape) {
             deviceScreen.classList.add('landscape');
+            deviceFrame.classList.add('landscape-mode');
+            
+            // Update dimensions display for landscape
+            document.getElementById('deviceDimensions').textContent = `${height}×${width}`;
         } else {
-            deviceScreen.classList.remove('landscape');
+            // Update dimensions display for portrait
+            document.getElementById('deviceDimensions').textContent = `${width}×${height}`;
         }
+
+        // Add loading state to frame
+        deviceFrame.classList.add('loading');
+
+        // Show device frame status notification
+        this.showDeviceFrameStatus(deviceFrameInfo.displayName, deviceInfo.label);
 
         // Load current tab in iframe
         this.loadCurrentTabInSimulator();
-    }    async loadCurrentTabInSimulator() {
+    }async loadCurrentTabInSimulator() {
         const iframe = document.getElementById('simulatorIframe');
         const loadingOverlay = document.getElementById('loadingOverlay');
         
@@ -539,19 +572,31 @@ class AspectaPopup {
                 }
                 
                 // Load website directly in iframe
-                iframe.src = this.currentTab.url;
-                
-                // Handle iframe load events
+                iframe.src = this.currentTab.url;                // Handle iframe load events
                 const handleIframeLoad = () => {
                     console.log('Iframe loaded successfully');
                     setTimeout(() => {
                         loadingOverlay.classList.add('hidden');
+                        // Remove loading state from device frame
+                        const deviceFrame = document.getElementById('deviceFrame');
+                        deviceFrame.classList.remove('loading');
+                        // Update status indicator
+                        const statusIndicator = document.getElementById('statusIndicator');
+                        statusIndicator.className = 'status-indicator connected';
                     }, 500);
                     iframe.removeEventListener('load', handleIframeLoad);
                 };
                 
                 const handleIframeError = () => {
                     console.warn('Iframe failed to load, might be due to X-Frame-Options');
+                    // Remove loading state from device frame
+                    const deviceFrame = document.getElementById('deviceFrame');
+                    deviceFrame.classList.remove('loading');
+                    
+                    // Update status indicator to error
+                    const statusIndicator = document.getElementById('statusIndicator');
+                    statusIndicator.className = 'status-indicator error';
+                    
                     loadingOverlay.innerHTML = `
                         <div style="text-align: center; color: #ef4444;">
                             <div style="font-size: 24px; margin-bottom: 12px;">🔒</div>
@@ -643,35 +688,60 @@ class AspectaPopup {
             }
         }
         return null;
-    }
-
-    updateSimulatorIfActive() {
+    }    updateSimulatorIfActive() {
         const simulatorSection = document.getElementById('simulatorSection');
         if (simulatorSection.classList.contains('show')) {
             const width = parseInt(document.getElementById('widthInput').value);
             const height = parseInt(document.getElementById('heightInput').value);
             
             if (width && height) {
-                document.getElementById('deviceDimensions').textContent = `${width}×${height}`;
-                
-                // Update screen orientation
+                // Update screen orientation with enhanced handling
                 const deviceScreen = document.getElementById('deviceScreen');
+                const deviceFrame = document.getElementById('deviceFrame');
                 const isLandscape = document.getElementById('landscapeToggle').checked;
+                
+                // Remove existing orientation classes
+                deviceScreen.classList.remove('landscape');
+                deviceFrame.classList.remove('landscape-mode');
+                
                 if (isLandscape) {
                     deviceScreen.classList.add('landscape');
+                    deviceFrame.classList.add('landscape-mode');
+                    // Update dimensions display for landscape
+                    document.getElementById('deviceDimensions').textContent = `${height}×${width}`;
                 } else {
-                    deviceScreen.classList.remove('landscape');
+                    // Update dimensions display for portrait
+                    document.getElementById('deviceDimensions').textContent = `${width}×${height}`;
                 }
+                
+                // Add smooth transition effect
+                deviceFrame.style.transform = 'scale(0.98)';
+                setTimeout(() => {
+                    deviceFrame.style.transform = 'scale(1)';
+                }, 150);
             }
         }
-    }
-
-    closeSimulator() {
+    }    closeSimulator() {
         const simulatorSection = document.getElementById('simulatorSection');
         simulatorSection.classList.remove('show');
         
+        // Reset status indicator
+        const statusIndicator = document.getElementById('statusIndicator');
+        statusIndicator.className = 'status-indicator loading';
+        
+        // Reset device frame
+        const deviceFrame = document.getElementById('deviceFrame');
+        deviceFrame.classList.remove('loading', 'landscape-mode');
+        deviceFrame.className = 'device-frame';
+        
         // Clear iframe
         document.getElementById('simulatorIframe').src = '';
+        
+        // Reset tooltip
+        const tooltip = document.getElementById('deviceTooltip');
+        tooltip.textContent = 'Device Frame';
+        
+        console.log('Device simulator closed');
     }
 
     async openSimulatorInNewWindow() {
@@ -912,7 +982,89 @@ class AspectaPopup {
         }
     }
 
-    // ...existing code...
+    // Add device frame status notification
+    showDeviceFrameStatus(deviceType, deviceLabel) {
+        const statusEl = document.getElementById('statusText');
+        const originalText = statusEl.textContent;
+        const originalClass = statusEl.className;
+        
+        // Show device frame loaded status
+        statusEl.textContent = `${deviceType} frame loaded: ${deviceLabel}`;
+        statusEl.className = 'status-ready';
+        
+        // Add visual indicator
+        const deviceFrame = document.getElementById('deviceFrame');
+        deviceFrame.style.transform = 'scale(0.95)';
+        
+        setTimeout(() => {
+            deviceFrame.style.transform = 'scale(1)';
+        }, 200);
+        
+        // Reset status after 3 seconds
+        setTimeout(() => {
+            statusEl.textContent = originalText;
+            statusEl.className = originalClass;
+        }, 3000);
+    }
+
+    // Enhanced device type detection
+    getDeviceFrameType(deviceLabel) {
+        const label = deviceLabel.toLowerCase();
+        
+        // iPhone Pro models with Dynamic Island
+        if (label.includes('iphone 14 pro') || label.includes('iphone 15 pro') || 
+            label.includes('iphone 16 pro')) {
+            return { type: 'iphone-pro', displayName: '📱 iPhone Pro' };
+        }
+        // Regular iPhone models
+        else if (label.includes('iphone') || label.includes('ios')) {
+            return { type: 'iphone', displayName: '📱 iPhone' };
+        }
+        // Samsung Galaxy devices
+        else if (label.includes('galaxy') || label.includes('samsung')) {
+            return { type: 'samsung', displayName: '📱 Samsung Galaxy' };
+        }
+        // Google Pixel devices
+        else if (label.includes('pixel')) {
+            return { type: 'pixel', displayName: '📱 Google Pixel' };
+        }
+        // iPad devices
+        else if (label.includes('ipad')) {
+            return { type: 'ipad', displayName: '📱 iPad' };
+        }
+        // Generic tablets
+        else if (label.includes('tablet') || label.includes('tab ')) {
+            return { type: 'tablet', displayName: '📱 Tablet' };
+        }
+        // Desktop/laptop screens
+        else if (label.includes('desktop') || label.includes('laptop') || label.includes('monitor')) {
+            return { type: 'desktop', displayName: '🖥️ Desktop' };
+        }
+        // OnePlus devices
+        else if (label.includes('oneplus')) {
+            return { type: 'samsung', displayName: '📱 OnePlus' }; // Use Samsung frame
+        }
+        // Xiaomi devices
+        else if (label.includes('xiaomi') || label.includes('redmi')) {
+            return { type: 'samsung', displayName: '📱 Xiaomi' }; // Use Samsung frame
+        }
+        // Huawei devices
+        else if (label.includes('huawei') || label.includes('honor')) {
+            return { type: 'samsung', displayName: '📱 Huawei' }; // Use Samsung frame
+        }
+        // Surface devices
+        else if (label.includes('surface')) {
+            return { type: 'tablet', displayName: '📱 Surface' };
+        }
+        // Android devices (fallback)
+        else if (label.includes('android')) {
+            return { type: 'samsung', displayName: '📱 Android' };
+        }
+        // Default custom device
+        else {
+            return { type: 'samsung', displayName: '📱 Custom Device' };
+        }
+    }
 }
 
 // Initialize popup when DOM is loaded
