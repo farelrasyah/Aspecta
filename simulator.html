@@ -300,8 +300,7 @@
                     resolve(response);
                 });
             });
-            
-            try {
+              try {
                 await Promise.race([pingTest, pingTimeout]);
                 
                 // Step 5: Ready for action
@@ -309,23 +308,30 @@
                 
                 // Show final state
                 setTimeout(() => {
-                    document.getElementById('loadingMessage').textContent = '🚀 Simulator Ready! Starting capture...';
+                    document.getElementById('loadingMessage').textContent = '🚀 Simulator Ready! Capturing website...';
                     document.getElementById('instructions').style.display = 'block';
                     
-                    // Start auto-capture immediately
+                    // Start auto-capture with a small delay for better reliability
                     console.log('Aspecta Simulator: Starting auto-capture...');
-                    captureScreenshot();
-                }, 100); // Immediate start
+                    setTimeout(() => {
+                        captureScreenshot();
+                    }, 500);
+                }, 100);
                 
             } catch (error) {
                 console.error('Aspecta Simulator: Ping test failed:', error);
                 
-                // Try to continue anyway, show manual controls
-                updateProgress(5, 'Manual mode');
+                // Try to continue anyway, show manual controls with auto-retry
+                updateProgress(5, 'Retrying connection...');
                 
-                document.getElementById('loadingMessage').textContent = '⚠️ Extension connection issue. Click 📸 to capture manually.';
+                document.getElementById('loadingMessage').textContent = '🔄 Retrying connection... Auto-capturing in 3 seconds';
                 document.getElementById('instructions').style.display = 'block';
-                showError('Extension communication issue. Try clicking 📸 manually.');
+                
+                // Auto-retry after delay
+                setTimeout(() => {
+                    console.log('Aspecta Simulator: Auto-retry capture...');
+                    captureScreenshot();
+                }, 3000);
             }
             
             console.log('Aspecta Simulator: Initialization complete');
@@ -377,10 +383,9 @@
                 console.log('Aspecta Simulator: Requesting screenshot for', simulatorConfig.targetUrl);
                 
                 updateCaptureProgress(3, 4, 'Capturing screenshot...');
-                
-                // Create timeout promise (reduced to 8 seconds)
+                  // Create timeout promise (increased to 15 seconds for better reliability)
                 const timeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error('Screenshot capture timeout (8s)')), 8000);
+                    setTimeout(() => reject(new Error('Screenshot capture timeout (15s)')), 15000);
                 });
                 
                 // Create screenshot request promise

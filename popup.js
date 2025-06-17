@@ -26,7 +26,7 @@ class AspectaPopup {
     }    async loadDevices() {
         try {
             console.log('Aspecta Popup: Loading devices...');
-            const response = await fetch('devices.json');
+            const response = await fetch(chrome.runtime.getURL('devices.json'));
             
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -47,10 +47,22 @@ class AspectaPopup {
                     userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
                 },
                 {
+                    label: "iPhone 12/13/14",
+                    width: 390,
+                    height: 844,
+                    userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
+                },
+                {
                     label: "Galaxy S22",
                     width: 360,
                     height: 780,
                     userAgent: "Mozilla/5.0 (Linux; Android 12; SM-S906B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Mobile Safari/537.36"
+                },
+                {
+                    label: "iPad",
+                    width: 768,
+                    height: 1024,
+                    userAgent: "Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
                 }
             ];
             console.log('Aspecta Popup: Using fallback devices');
@@ -235,14 +247,12 @@ class AspectaPopup {
                 }
             }
 
-            // Create simulator window instead of modifying current window
+            // Create simulator window and show preview
             await this.createSimulatorWindow(width, height, deviceInfo, userAgent);
+            this.showDeviceSimulator(width, height, deviceSelect.value);
 
-            this.setStatus('Device simulator opened!', 'ready');
+            this.setStatus('Device simulator opened! Screenshot will load automatically.', 'ready');
             this.updateCurrentInfo();
-            
-            // Show local device preview (without iframe issues)
-            this.showLocalDevicePreview(width, height, deviceInfo);
             
         } catch (error) {
             console.error('Failed to apply simulation:', error);
@@ -252,6 +262,8 @@ class AspectaPopup {
                 errorMessage = 'No active tab found';
             } else if (error.message.includes('Extension context invalidated')) {
                 errorMessage = 'Extension needs to be reloaded';
+            } else if (error.message.includes('chrome://')) {
+                errorMessage = 'Cannot simulate system pages. Please navigate to a regular website.';
             }
             
             this.setStatus(errorMessage, 'error');
@@ -476,14 +488,19 @@ class AspectaPopup {
 
         // Load current tab in iframe
         this.loadCurrentTabInSimulator();
-    }
-
-    async loadCurrentTabInSimulator() {
+    }    async loadCurrentTabInSimulator() {
         const iframe = document.getElementById('simulatorIframe');
         const loadingOverlay = document.getElementById('loadingOverlay');
         
         // Show loading
         loadingOverlay.classList.remove('hidden');
+        loadingOverlay.innerHTML = `
+            <div class="loading-spinner"></div>
+            <p>Capturing website screenshot...</p>
+            <div style="font-size: 12px; color: #6b7280; margin-top: 8px;">
+                Please wait while we capture the current website
+            </div>
+        `;
 
         try {
             if (this.currentTab && this.currentTab.url) {
@@ -492,38 +509,95 @@ class AspectaPopup {
                     this.currentTab.url.startsWith('chrome-extension://') ||
                     this.currentTab.url.startsWith('edge://') ||
                     this.currentTab.url.startsWith('about:')) {
-                    
-                    // Use test page for unsupported URLs
-                    iframe.src = chrome.runtime.getURL('test.html');
-                } else {
-                    iframe.src = this.currentTab.url;
+                      // Show message for unsupported URLs
+                    loadingOverlay.innerHTML = `
+                        <div style="text-align: center; color: #ef4444;">
+                            <div style="font-size: 24px; margin-bottom: 12px;">⚠️</div>
+                            <p><strong>Cannot Preview System Pages</strong></p>
+                            <p style="font-size: 12px; margin-top: 8px;">
+                                Please navigate to a regular website to test responsiveness.
+                            </p>
+                            <button onclick="window.open('${chrome.runtime.getURL('test-new.html')}', '_blank')" 
+                                    style="margin-top: 10px; padding: 6px 12px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                Open Test Page
+                            </button>
+                        </div>
+                    `;
+                    return;
                 }
 
-                // Hide loading after iframe loads
-                iframe.onload = () => {
-                    setTimeout(() => {
-                        loadingOverlay.classList.add('hidden');
-                    }, 500);
-                };
-
-                // Fallback: hide loading after timeout
-                setTimeout(() => {
-                    loadingOverlay.classList.add('hidden');
-                }, 3000);
+                // Hide iframe and capture screenshot instead
+                iframe.style.display = 'none';
+                
+                // Request screenshot from background script
+                console.log('Requesting screenshot for:', this.currentTab.url);
+                
+                chrome.runtime.sendMessage({
+                    action: 'captureScreenshot',
+                    url: this.currentTab.url,
+                    width: parseInt(document.getElementById('widthInput').value),
+                    height: parseInt(document.getElementById('heightInput').value),
+                    userAgent: this.getUserAgentFromDevice()
+                }, (response) => {
+                    if (response && response.success) {
+                        // Show screenshot in iframe alternative
+                        iframe.style.display = 'none';
+                        loadingOverlay.innerHTML = `
+                            <img src="${response.dataUrl}" style="width: 100%; height: 100%; object-fit: contain; background: white;">
+                        `;
+                    } else {
+                        // Show error message
+                        loadingOverlay.innerHTML = `
+                            <div style="text-align: center; color: #ef4444;">
+                                <div style="font-size: 24px; margin-bottom: 12px;">❌</div>
+                                <p><strong>Screenshot Failed</strong></p>
+                                <p style="font-size: 12px; margin-top: 8px;">
+                                    ${response?.error || 'Unable to capture website'}
+                                </p>
+                                <button onclick="location.reload()" style="margin-top: 10px; padding: 4px 8px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">Retry</button>
+                            </div>
+                        `;
+                    }
+                });
                 
             } else {
-                iframe.src = chrome.runtime.getURL('test.html');
-                setTimeout(() => {
-                    loadingOverlay.classList.add('hidden');
-                }, 1000);
+                loadingOverlay.innerHTML = `
+                    <div style="text-align: center; color: #6b7280;">
+                        <div style="font-size: 24px; margin-bottom: 12px;">📄</div>
+                        <p><strong>No Website Found</strong></p>
+                        <p style="font-size: 12px; margin-top: 8px;">
+                            Please navigate to a website first.
+                        </p>
+                    </div>
+                `;
             }
         } catch (error) {
             console.error('Failed to load tab in simulator:', error);
-            iframe.src = chrome.runtime.getURL('test.html');
-            setTimeout(() => {
-                loadingOverlay.classList.add('hidden');
-            }, 1000);
+            loadingOverlay.innerHTML = `
+                <div style="text-align: center; color: #ef4444;">
+                    <div style="font-size: 24px; margin-bottom: 12px;">❌</div>
+                    <p><strong>Preview Error</strong></p>
+                    <p style="font-size: 12px; margin-top: 8px;">
+                        ${error.message}
+                    </p>
+                </div>
+            `;
         }
+    }
+
+    getUserAgentFromDevice() {
+        const deviceSelect = document.getElementById('deviceSelect');
+        const userAgentToggle = document.getElementById('userAgentToggle');
+        
+        if (userAgentToggle.checked && deviceSelect.value) {
+            try {
+                const device = JSON.parse(deviceSelect.value);
+                return device.userAgent;
+            } catch (e) {
+                console.warn('Could not parse device user agent:', e);
+            }
+        }
+        return null;
     }
 
     updateSimulatorIfActive() {

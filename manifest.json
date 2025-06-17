@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Aspecta",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Mobile Simulator untuk responsive testing dengan mudah",  "permissions": [
     "activeTab",
     "tabs",
@@ -40,7 +40,7 @@
     }
   ],  "web_accessible_resources": [
     {
-      "resources": ["devices.json", "test.html", "simulator.html"],
+      "resources": ["devices.json", "test.html", "test-new.html", "simulator.html"],
       "matches": ["<all_urls>"]
     }
   ]

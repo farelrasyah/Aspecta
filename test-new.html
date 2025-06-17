@@ -128,104 +128,107 @@
             .container {
                 padding: 15px;
             }
-            
-            .header p {
-                font-size: 14px;
-            }
-            
-            .responsive-test {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            body {
-                margin: 5px;
-            }
-            
-            .container {
-                padding: 10px;
-            }
-            
-            h1 {
-                font-size: 24px;
-            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎯 Aspecta Mobile Simulator Test Page</h1>
+        <div class="header">
+            <h1>🎯 Aspecta Test Page</h1>
+            <p>Testing responsive design across different devices</p>
+        </div>
+        
+        <div class="success-message">
+            ✅ Aspecta Extension is working properly!
+        </div>
         
         <div class="info-box">
-            <h3>Viewport Information</h3>
-            <p><strong>Window Size:</strong> <span id="windowSize">Loading...</span></p>
-            <p><strong>Screen Size:</strong> <span id="screenSize">Loading...</span></p>
-            <p><strong>User Agent:</strong> <span id="userAgent">Loading...</span></p>
-            <p><strong>Timestamp:</strong> <span id="timestamp">Loading...</span></p>
+            <h2>📱 Device Simulation Active</h2>
+            <p>This page demonstrates how websites look on different screen sizes</p>
+        </div>
+        
+        <div class="device-info" id="deviceInfo">
+            Screen Size: <span id="screenSize">Loading...</span><br>
+            User Agent: <span id="userAgent">Loading...</span>
         </div>
         
         <div class="responsive-test">
             <div class="test-card">
-                <h4>📱 Mobile Test</h4>
-                <p>This card should stack vertically on mobile devices (width < 768px)</p>
+                <h3>📊 Layout Test</h3>
+                <p>This grid layout automatically adjusts based on screen size. On mobile devices, cards stack vertically for better readability.</p>
             </div>
             
             <div class="test-card">
-                <h4>💻 Desktop Test</h4>
-                <p>This card should appear side-by-side on larger screens</p>
+                <h3>🎨 Visual Test</h3>
+                <p>Colors, shadows, and hover effects are optimized for both desktop and mobile viewing experiences.</p>
             </div>
             
             <div class="test-card">
-                <h4>🔄 Responsive Test</h4>
-                <p>Try different device sizes with Aspecta to see responsive behavior</p>
+                <h3>📝 Typography Test</h3>
+                <p>Font sizes and line heights scale appropriately across different screen sizes for optimal readability.</p>
+            </div>
+            
+            <div class="test-card">
+                <h3>🔧 Interactive Test</h3>
+                <p>Touch-friendly button sizes and spacing ensure good user experience on mobile devices.</p>
             </div>
         </div>
         
-        <div style="background: #e9ecef; padding: 15px; border-radius: 5px; margin-top: 20px;">
-            <h4>📋 Testing Instructions:</h4>
-            <ol>
-                <li>Open Aspecta extension popup</li>
-                <li>Select a mobile device (e.g., iPhone SE, Galaxy S22)</li>
-                <li>Click "Apply" to simulate the device</li>
-                <li>Observe how this page adapts to different viewport sizes</li>
-                <li>Check the viewport information above to verify changes</li>
-            </ol>
-        </div>
-        
-        <div style="text-align: center; margin-top: 30px; color: #6c757d;">
-            <p>✨ Test page for Aspecta Chrome Extension ✨</p>
+        <div class="info-box">
+            <h3>How to Use Aspecta:</h3>
+            <p>1. Click the Aspecta extension icon<br>
+               2. Select a device or enter custom dimensions<br>
+               3. Click "Open Device Simulator"<br>
+               4. View your website in different device sizes!</p>
         </div>
     </div>
 
     <script>
-        function updateInfo() {
-            document.getElementById('windowSize').textContent = 
-                `${window.innerWidth} × ${window.innerHeight}`;
+        // Update device information
+        function updateDeviceInfo() {
+            const screenSize = document.getElementById('screenSize');
+            const userAgent = document.getElementById('userAgent');
             
-            document.getElementById('screenSize').textContent = 
-                `${screen.width} × ${screen.height}`;
+            if (screenSize) {
+                screenSize.textContent = window.innerWidth + ' × ' + window.innerHeight + 'px';
+            }
             
-            document.getElementById('userAgent').textContent = 
-                navigator.userAgent.substring(0, 100) + '...';
-            
-            document.getElementById('timestamp').textContent = 
-                new Date().toLocaleString();
+            if (userAgent) {
+                const ua = navigator.userAgent;
+                let deviceType = 'Desktop';
+                
+                if (/iPhone|iPad|iPod/.test(ua)) {
+                    deviceType = 'iOS Device';
+                } else if (/Android/.test(ua)) {
+                    deviceType = 'Android Device';
+                } else if (/Mobile/.test(ua)) {
+                    deviceType = 'Mobile Device';
+                }
+                
+                userAgent.textContent = deviceType;
+            }
         }
         
-        // Update info on load
-        updateInfo();
+        // Update on load and resize
+        window.addEventListener('load', updateDeviceInfo);
+        window.addEventListener('resize', updateDeviceInfo);
         
-        // Update info on resize
-        window.addEventListener('resize', updateInfo);
-        
-        // Update every 2 seconds to catch changes
-        setInterval(updateInfo, 2000);
-        
-        // Add visual feedback when Aspecta is working
-        if (window.chrome && window.chrome.runtime) {
-            console.log('Chrome extension environment detected');
-        }
+        // Add some visual feedback
+        setTimeout(() => {
+            const cards = document.querySelectorAll('.test-card');
+            cards.forEach((card, index) => {
+                setTimeout(() => {
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateY(20px)';
+                    card.style.transition = 'all 0.5s ease';
+                    
+                    setTimeout(() => {
+                        card.style.opacity = '1';
+                        card.style.transform = 'translateY(0)';
+                    }, 100);
+                }, index * 100);
+            });
+        }, 500);
     </script>
 </body>
 </html>

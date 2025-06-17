@@ -200,8 +200,7 @@ class AspectaBackground {
                     }
                 };
                 chrome.tabs.onUpdated.addListener(listener);
-                
-                // Further reduced timeout from 3s to 2s
+                  // Improved timeout - increased from 2s to 5s for better compatibility
                 setTimeout(() => {
                     if (!resolved) {
                         resolved = true;
@@ -209,7 +208,7 @@ class AspectaBackground {
                         console.log('Aspecta Background: Page load timeout, proceeding anyway');
                         resolve();
                     }
-                }, 2000);
+                }, 5000);
             });
 
             // Apply user agent if provided (skip reload for speed)
@@ -220,10 +219,8 @@ class AspectaBackground {
                 } catch (error) {
                     console.warn('Aspecta Background: User agent setup failed, continuing...', error);
                 }
-            }
-
-            // Reduced rendering delay from 500ms to 200ms
-            await new Promise(resolve => setTimeout(resolve, 200));
+            }            // Increased rendering delay from 200ms to 800ms for better page stability
+            await new Promise(resolve => setTimeout(resolve, 800));
 
             console.log('Aspecta Background: Capturing screenshot...');
             
